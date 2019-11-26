@@ -135,10 +135,10 @@ module triangles
                 b = dot_product(d1, d2)
                 denom = a*e - b*b
                 if (denom /= 0.0) then
-                    s = (b*f - c*e)
+                    s = (b*f - c*e) / denom
                     call clamp(s, 0.0, 1.0)
                 else
-                    s=0.0
+                    s = 0.0
                 end if
 
                 t = (b*s + f)/e
