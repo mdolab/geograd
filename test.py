@@ -2,8 +2,77 @@ import numpy as np
 import unittest
 from triangles import triangles as t 
 
-# normal case
+class TestPointTri(unittest.TestCase):
+    def setUp(self):
+        self.a = np.array([0.0, 0.0, 0.0])
+        self.b = np.array([1.0, 0.0, 0.0])
+        self.c = np.array([0.0, 1.0, 0.0])
+    
+    def test_interior_plane(self):
+        p = np.array([0.25, 0.25, 0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.0, 10)
 
+    def test_interior_nonplane(self):
+        p = np.array([0.25, 0.25, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.25, 10)
+
+    def test_edges_plane(self):
+        # edge ab
+        p = np.array([0.5, -0.5, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.25, 10)
+        # edge bc
+        p = np.array([1.0, 1.0, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
+        # edge ac
+        p = np.array([-0.5, 0.5, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.25, 10)
+
+    def test_edges_nonplane(self):
+        # edge ab
+        p = np.array([0.5, -0.5, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
+        # edge bc
+        p = np.array([1.0, 1.0, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.75, 10)
+        # edge ac
+        p = np.array([-0.5, 0.5, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
+
+    def test_vertices_plane(self):
+        # vertex a
+        p = np.array([-0.5, -0.5, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
+        # vertex b
+        p = np.array([1.5, 0.0, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.25, 10)
+        # vertex c
+        p = np.array([0.0, 1.5, 0.0])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.25, 10)
+
+    def test_vertices_nonplane(self):
+        # vertex a
+        p = np.array([-0.5, -0.5, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.75, 10)
+        # vertex b
+        p = np.array([1.5, 0.0, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
+        # vertex c
+        p = np.array([0.0, 1.5, 0.5])
+        d2 = t.point_tri(self.a, self.b, self.c, p)
+        self.assertAlmostEqual(d2, 0.5, 10)
 
 class TestLineLine(unittest.TestCase):
     def setUp(self):
