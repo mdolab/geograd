@@ -2,12 +2,12 @@ module triangles
     implicit none
     contains
 
-    subroutine point_tri(a, b, c, p, d)
+    subroutine point_tri(a, b, c, p, dsquared)
         implicit none
         real, dimension(3), intent(in) :: a, b, c, p
-        real, dimension(3), intent(out) :: d
+        real, intent(out) :: dsquared
 
-        real, dimension(3) :: ab, ac, ap, bp, cp
+        real, dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff
         real :: d1, d2, d3, d4, d5, d6
         real :: v, vc, vb, va, w, denom
 
@@ -17,7 +17,9 @@ module triangles
         d1 = dot_product(ab, ap)
         d2 = dot_product(ac, ap)
         if (d1 <= 0.0 .AND. d2 <= 0.0) then
-            d = a  ! barycentric 1, 0, 0
+            closepoint = a  ! barycentric 1, 0, 0
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return 
         end if
 
@@ -26,7 +28,9 @@ module triangles
         d3 = dot_product(ab, bp)
         d4 = dot_product(ac, bp)
         if (d3 >= 0.0 .AND. d4 <= d3) then
-            d = b ! barycentric 0, 1, 0
+            closepoint = b ! barycentric 0, 1, 0
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return
         end if
 
@@ -34,7 +38,9 @@ module triangles
         vc = d1*d4 - d3*d2
         if (vc <= 0.0 .AND. d1 >= 0.0 .AND. d3 <= 0.0) then
             v = d1 / (d1 - d3)
-            d = a + v * ab ! barycentric coordinates (1-v,v,0)
+            closepoint = a + v * ab ! barycentric coordinates (1-v,v,0)
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return 
         end if
         
@@ -43,7 +49,9 @@ module triangles
         d5 = dot_product(ab, cp)
         d6 = dot_product(ac, cp)
         if (d6 >= 0.0 .AND. d5 <= d6) then
-            d = c ! barycentric coordinates (0,0,1)
+            closepoint = c ! barycentric coordinates (0,0,1)
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return
         end if
 
@@ -51,7 +59,9 @@ module triangles
         vb = d5*d2 - d1*d6
         if (vb <= 0.0 .AND. d2 >= 0.0 .AND. d6 <=0.0) then
             w = d2 / (d2 - d6)
-            d = a + w * ac ! barycentric (1-w, 0, w)
+            closepoint = a + w * ac ! barycentric (1-w, 0, w)
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return
         end if
 
@@ -59,7 +69,9 @@ module triangles
         va = d3*d6 - d5*d4
         if (va <= 0.0 .AND. (d4-d3) >= 0.0 .AND. (d5-d6) >= 0.0) then
             w = (d4 - d3) / ((d4 - d3) + (d5 - d6))
-            d = b + w * (c - b) ! barycentric (0, 1-w, w)
+            closepoint = b + w * (c - b) ! barycentric (0, 1-w, w)
+            diff = closepoint - p
+            dsquared = dot_product(diff, diff)
             return
         end if
 
@@ -67,9 +79,86 @@ module triangles
         denom = 1.0 / (va + vb + vc)
         v = vb * denom
         w = vc * denom
-        d = a + ab * v + ac * w
+        closepoint = a + ab * v + ac * w
+        diff = closepoint - p
+        dsquared = dot_product(diff, diff)
         return
         
     end subroutine point_tri
+
+    subroutine clamp(n, min, max)
+        implicit none
+        real, intent(in) :: min, max
+        real, intent(inout) :: n
+
+        if (n < min) then
+            n = min
+        end if
+        if (n > max) then
+            n = max
+        end if
+    end subroutine clamp
+
+    subroutine line_line(p1, q1, p2, q2, dsquared)
+        implicit none
+        real, dimension(3), intent(in) :: p1, q1, p2, q2
+        real, intent(out) :: dsquared
+        real, dimension(3) :: d1, d2, r, diff, c1, c2
+        real, parameter :: EPS = 1e-12
+        real :: a, b, c, e, f, s, t, denom
+
+        d1 = q1 - p1
+        d2 = q2 - p2
+        r = p1 - p2
+        a = dot_product(d1, d1)
+        e = dot_product(d2, d2)
+        f = dot_product(d2, r)
+
+        if (a <= EPS .AND. e <= EPS) then
+            ! both segments degenrate into points
+            diff = q1 - p1
+            dsquared = dot_product(diff, diff)
+            return
+        end if
+        if (a <= EPS) then
+            s = 0.0
+            t = f / e
+            call clamp(t, 0.0, 1.0)
+        else
+            c = dot_product(d1, r)
+            if (e <= EPS) then
+                t = 0.0
+                s = -c / a
+                call clamp(s, 0.0, 1.0)
+            else
+                ! General non-degenerate case
+                b = dot_product(d1, d2)
+                denom = a*e - b*b
+                if (denom /= 0.0) then
+                    s = (b*f - c*e)
+                    call clamp(s, 0.0, 1.0)
+                else
+                    s=0.0
+                end if
+
+                t = (b*s + f)/e
+                if (t < 0.0) then
+                    t = 0.0
+                    s = -c / a
+                    call clamp(s, 0.0, 1.0)
+                else if (t > 1.0) then
+                    t = 1.0
+                    s = (b - c)/a
+                    call clamp(s, 0.0, 1.0)
+                end if
+            end if
+        end if
+        c1 = p1 + d1 * s
+        c2 = p2 + d2 * t
+        diff = c2 - c1
+        dsquared = dot_product(diff, diff)
+        return
+
+    end subroutine line_line
 
 end module triangles
