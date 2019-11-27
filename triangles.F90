@@ -2,35 +2,45 @@ module triangles
     implicit none
     contains
 
+    subroutine dot_prod(d, v, w)
+        implicit none
+        real, dimension(3), intent(in) :: v, w
+        real, intent(out) :: d
+        d = v(1)*w(1)+v(2)*w(2)+v(3)*w(3)
+    end subroutine dot_prod
+
+
     subroutine point_tri(a, b, c, p, dsquared)
         implicit none
         real, dimension(3), intent(in) :: a, b, c, p
         real, intent(out) :: dsquared
 
-        real, dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff
+        real, dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff, dummydiff
         real :: d1, d2, d3, d4, d5, d6
         real :: v, vc, vb, va, w, denom
 
         ab = b - a
         ac = c - a
         ap = p - a
-        d1 = dot_product(ab, ap)
-        d2 = dot_product(ac, ap)
+        call dot_prod(d1, ab, ap)
+        call dot_prod(d2, ac, ap)
         if (d1 <= 0.0 .AND. d2 <= 0.0) then
             closepoint = a  ! barycentric 1, 0, 0
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return 
         end if
 
         ! check if P in vertex region outside B
         bp = p - b
-        d3 = dot_product(ab, bp)
-        d4 = dot_product(ac, bp)
+        call dot_prod(d3, ab, bp)
+        call dot_prod(d4, ac, bp)
         if (d3 >= 0.0 .AND. d4 <= d3) then
             closepoint = b ! barycentric 0, 1, 0
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return
         end if
 
@@ -40,18 +50,20 @@ module triangles
             v = d1 / (d1 - d3)
             closepoint = a + v * ab ! barycentric coordinates (1-v,v,0)
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return 
         end if
         
         ! Check if P in vertex region C
         cp = p - c
-        d5 = dot_product(ab, cp)
-        d6 = dot_product(ac, cp)
+        call dot_prod(d5, ab, cp)
+        call dot_prod(d6, ac, cp)
         if (d6 >= 0.0 .AND. d5 <= d6) then
             closepoint = c ! barycentric coordinates (0,0,1)
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return
         end if
 
@@ -61,7 +73,8 @@ module triangles
             w = d2 / (d2 - d6)
             closepoint = a + w * ac ! barycentric (1-w, 0, w)
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return
         end if
 
@@ -71,7 +84,8 @@ module triangles
             w = (d4 - d3) / ((d4 - d3) + (d5 - d6))
             closepoint = b + w * (c - b) ! barycentric (0, 1-w, w)
             diff = closepoint - p
-            dsquared = dot_product(diff, diff)
+            dummydiff = diff
+            call dot_prod(dsquared, diff, dummydiff)
             return
         end if
 
@@ -81,7 +95,8 @@ module triangles
         w = vc * denom
         closepoint = a + ab * v + ac * w
         diff = closepoint - p
-        dsquared = dot_product(diff, diff)
+        dummydiff = diff
+        call dot_prod(dsquared, diff, dummydiff)
         return
         
     end subroutine point_tri
@@ -110,14 +125,14 @@ module triangles
         d1 = q1 - p1
         d2 = q2 - p2
         r = p1 - p2
-        a = dot_product(d1, d1)
-        e = dot_product(d2, d2)
-        f = dot_product(d2, r)
+        call dot_prod(a, d1, d1)
+        call dot_prod(e, d2, d2)
+        call dot_prod(f, d2, r)
 
         if (a <= EPS .AND. e <= EPS) then
             ! both segments degenrate into points
             diff = q1 - p1
-            dsquared = dot_product(diff, diff)
+            call dot_prod(dsquared, diff, diff)
             return
         end if
         if (a <= EPS) then
@@ -125,14 +140,14 @@ module triangles
             t = f / e
             call clamp(t, 0.0, 1.0)
         else
-            c = dot_product(d1, r)
+            call dot_prod(c, d1, r)
             if (e <= EPS) then
                 t = 0.0
                 s = -c / a
                 call clamp(s, 0.0, 1.0)
             else
                 ! General non-degenerate case
-                b = dot_product(d1, d2)
+                call dot_prod(b, d1, d2)
                 denom = a*e - b*b
                 if (denom /= 0.0) then
                     s = (b*f - c*e) / denom
@@ -156,7 +171,7 @@ module triangles
         c1 = p1 + d1 * s
         c2 = p2 + d2 * t
         diff = c2 - c1
-        dsquared = dot_product(diff, diff)
+        call dot_prod(dsquared, diff, diff)
         return
 
     end subroutine line_line

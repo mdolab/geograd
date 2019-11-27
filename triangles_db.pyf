@@ -1,0 +1,50 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module triangles ! in 
+    interface  ! in :triangles
+        module triangles ! in :triangles:triangles_db.f90
+            subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,dsquared,dsquaredd) ! in :triangles:triangles_db.f90:triangles_db
+                real dimension(3),intent(in) :: a
+                real dimension(3),intent(in) :: ad
+                real dimension(3),intent(in) :: b
+                real dimension(3),intent(in) :: bd
+                real dimension(3),intent(in) :: c
+                real dimension(3),intent(in) :: cd
+                real dimension(3),intent(in) :: p
+                real dimension(3),intent(in) :: pd
+                real intent(out) :: dsquared
+                real intent(out) :: dsquaredd
+            end subroutine point_tri_d
+            subroutine point_tri_b(a,ab0,b,bb,c,cb,p,pb,dsquared,dsquaredb) ! in :triangles:triangles_db.f90:triangles_db
+                real dimension(3),intent(in) :: a
+                real dimension(3),intent(out) :: ab0
+                real dimension(3),intent(in) :: b
+                real dimension(3),intent(out) :: bb
+                real dimension(3),intent(in) :: c
+                real dimension(3),intent(out) :: cb
+                real dimension(3),intent(in) :: p
+                real dimension(3),intent(out) :: pb
+                real intent(out) :: dsquared
+                real intent(in) :: dsquaredb
+            end subroutine point_tri_b
+            subroutine point_tri(a,b,c,p,dsquared) ! in :triangles:triangles_db.f90:triangles_db
+                real dimension(3),intent(in) :: a
+                real dimension(3),intent(in) :: b
+                real dimension(3),intent(in) :: c
+                real dimension(3),intent(in) :: p
+                real intent(out) :: dsquared
+            end subroutine point_tri
+            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :triangles:triangles_db.f90:triangles_db
+                real dimension(3),intent(in) :: p1
+                real dimension(3),intent(in) :: q1
+                real dimension(3),intent(in) :: p2
+                real dimension(3),intent(in) :: q2
+                real intent(out) :: dsquared
+            end subroutine line_line
+        end module triangles
+    end interface 
+end python module triangles
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
