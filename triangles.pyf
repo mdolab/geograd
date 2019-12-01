@@ -4,8 +4,6 @@
 python module triangles ! in 
     interface  ! in :triangles
         module triangles_db ! in :triangles:triangles_db.f90
-            real(kind=8), private :: dummyreal
-            integer, parameter,optional,depend(dummyreal) :: realtype=kind(dummyreal)
             subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,dsquared,dsquaredd) ! in :triangles:triangles_db.f90:triangles_db
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3),intent(in) :: ad
@@ -30,10 +28,32 @@ python module triangles ! in
                 real(kind=8),intent(out) :: dsquared
                 real(kind=8),intent(in) :: dsquaredb
             end subroutine point_tri_b
+            subroutine line_line_d(p1,p1d,q1,q1d,p2,p2d,q2,q2d,dsquared,dsquaredd) ! in :triangles:triangles_db.f90:triangles_db
+                real(kind=8) dimension(3),intent(in) :: p1
+                real(kind=8) dimension(3),intent(in) :: p1d
+                real(kind=8) dimension(3),intent(in) :: q1
+                real(kind=8) dimension(3),intent(in) :: q1d
+                real(kind=8) dimension(3),intent(in) :: p2
+                real(kind=8) dimension(3),intent(in) :: p2d
+                real(kind=8) dimension(3),intent(in) :: q2
+                real(kind=8) dimension(3),intent(in) :: q2d
+                real(kind=8) intent(out) :: dsquared
+                real(kind=8) intent(out) :: dsquaredd
+            end subroutine line_line_d
+            subroutine line_line_b(p1,p1b,q1,q1b,p2,p2b,q2,q2b,dsquared,dsquaredb) ! in :triangles:triangles_db.f90:triangles_db
+                real(kind=8) dimension(3),intent(in) :: p1
+                real(kind=8) dimension(3),intent(out) :: p1b
+                real(kind=8) dimension(3),intent(in) :: q1
+                real(kind=8) dimension(3),intent(out) :: q1b
+                real(kind=8) dimension(3),intent(in) :: p2
+                real(kind=8) dimension(3),intent(out) :: p2b
+                real(kind=8) dimension(3),intent(in) :: q2
+                real(kind=8) dimension(3),intent(out) :: q2b
+                real(kind=8) intent(out):: dsquared
+                real(kind=8) intent(in):: dsquaredb
+            end subroutine line_line_b
         end module triangles_db
         module triangles ! in :triangles:triangles.F90
-            real(kind=8), private :: dummyreal
-            integer, parameter,optional,depend(dummyreal) :: realtype=kind(dummyreal)
             subroutine point_tri(a,b,c,p,dsquared) ! in :triangles:triangles.F90:triangles
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3),intent(in) :: b

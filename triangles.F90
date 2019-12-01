@@ -1,27 +1,25 @@
 module triangles
     implicit none
-    real(kind=8), private :: dummyreal
-    integer, parameter :: realType = kind(dummyreal)
-    real(kind=realType) :: one = 1.0
-    real(kind=realType) :: zero = 0.0
+    real(kind=8) :: one = 1.0
+    real(kind=8) :: zero = 0.0
     contains
 
     subroutine dot_prod(d, v, w)
         implicit none
-        real(kind=realType), dimension(3), intent(in) :: v, w
-        real(kind=realType), intent(out) :: d
+        real(kind=8), dimension(3), intent(in) :: v, w
+        real(kind=8), intent(out) :: d
         d = v(1)*w(1)+v(2)*w(2)+v(3)*w(3)
     end subroutine dot_prod
 
 
     subroutine point_tri(a, b, c, p, dsquared)
         implicit none
-        real(kind=realType), dimension(3), intent(in) :: a, b, c, p
-        real(kind=realType), intent(out) :: dsquared
+        real(kind=8), dimension(3), intent(in) :: a, b, c, p
+        real(kind=8), intent(out) :: dsquared
 
-        real(kind=realType), dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff, dummydiff
-        real(kind=realType) :: d1, d2, d3, d4, d5, d6
-        real(kind=realType) :: v, vc, vb, va, w, denom
+        real(kind=8), dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff, dummydiff
+        real(kind=8) :: d1, d2, d3, d4, d5, d6
+        real(kind=8) :: v, vc, vb, va, w, denom
 
         ab = b - a
         ac = c - a
@@ -107,8 +105,8 @@ module triangles
 
     subroutine clamp(n, min, max)
         implicit none
-        real(kind=realType), intent(in) :: min, max
-        real(kind=realType), intent(inout) :: n
+        real(kind=8), intent(in) :: min, max
+        real(kind=8), intent(inout) :: n
 
         if (n < min) then
             n = min
@@ -120,11 +118,11 @@ module triangles
 
     subroutine line_line(p1, q1, p2, q2, dsquared)
         implicit none
-        real(kind=realType), dimension(3), intent(in) :: p1, q1, p2, q2
-        real(kind=realType), intent(out) :: dsquared
-        real(kind=realType), dimension(3) :: d1, d2, r, diff, c1, c2, dummy3
-        real(kind=realType), parameter :: EPS = 1e-12
-        real(kind=realType) :: a, b, c, e, f, s, t, denom
+        real(kind=8), dimension(3), intent(in) :: p1, q1, p2, q2
+        real(kind=8), intent(out) :: dsquared
+        real(kind=8), dimension(3) :: d1, d2, r, diff, c1, c2, dummy3
+        real(kind=8), parameter :: EPS = 1e-12
+        real(kind=8) :: a, b, c, e, f, s, t, denom
 
         d1 = q1 - p1
         d2 = q2 - p2
