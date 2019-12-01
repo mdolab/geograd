@@ -122,21 +122,24 @@ module triangles
         implicit none
         real(kind=realType), dimension(3), intent(in) :: p1, q1, p2, q2
         real(kind=realType), intent(out) :: dsquared
-        real(kind=realType), dimension(3) :: d1, d2, r, diff, c1, c2
+        real(kind=realType), dimension(3) :: d1, d2, r, diff, c1, c2, dummy3
         real(kind=realType), parameter :: EPS = 1e-12
         real(kind=realType) :: a, b, c, e, f, s, t, denom
 
         d1 = q1 - p1
         d2 = q2 - p2
         r = p1 - p2
-        call dot_prod(a, d1, d1)
-        call dot_prod(e, d2, d2)
+        dummy3 = d1
+        call dot_prod(a, d1, dummy3)
+        dummy3 = d2
+        call dot_prod(e, d2, dummy3)
         call dot_prod(f, d2, r)
 
         if (a <= EPS .AND. e <= EPS) then
             ! both segments degenrate into points
             diff = q1 - p1
-            call dot_prod(dsquared, diff, diff)
+            dummy3 = diff
+            call dot_prod(dsquared, diff, dummy3)
             return
         end if
         if (a <= EPS) then
@@ -175,7 +178,8 @@ module triangles
         c1 = p1 + d1 * s
         c2 = p2 + d2 * t
         diff = c2 - c1
-        call dot_prod(dsquared, diff, diff)
+        dummy3 = diff
+        call dot_prod(dsquared, diff, dummy3)
         return
 
     end subroutine line_line

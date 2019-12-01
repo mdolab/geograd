@@ -11,7 +11,7 @@ pyf: triangles_db.f90
 	python3 -m numpy.f2py triangles_db.f90 triangles.F90 -m triangles -h triangles.pyf
 
 tapenade: triangles.F90
-	tapenade triangles.F90 -d -b -root point_tri
+	tapenade triangles.F90 -d -b -root point_tri -root line_line
 
 clean:
 	rm *.mod -f
