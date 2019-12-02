@@ -11,6 +11,15 @@ module triangles
         d = v(1)*w(1)+v(2)*w(2)+v(3)*w(3)
     end subroutine dot_prod
 
+    subroutine cross_prod(x, u, v)
+        implicit none
+        real(kind=8), dimension(3), intent(in) :: u, v
+        real(kind=8), dimension(3), intent(out) :: x
+        x(1) = u(2)*v(3)-u(3)*v(2)
+        x(2) = u(3)*v(1)-u(1)*v(3)
+        x(3) = u(1)*v(2)-u(2)*v(1)
+    end subroutine cross_prod
+
 
     subroutine point_tri(a, b, c, p, dsquared)
         implicit none
@@ -181,5 +190,136 @@ module triangles
         return
 
     end subroutine line_line
+
+    subroutine intersect(a1, b1, c1, a2, b2, c2, length)
+        implicit none
+        real(kind=8), dimension(3), intent(in) :: a1, b1, c1, a2, b2, c2
+        real(kind=8), intent(out) :: length
+        real(kind=8), dimension(3) :: n1, n2, d
+        real(kind=8), parameter :: EPS = 1e-12
+        real(kind=8) :: d1, da1, db1, dc1, pa1, pb1, pc1, t11, t12, t1high, t1low, dt
+        real(kind=8) :: d2, da2, db2, dc2, pa2, pb2, pc2, t21, t22, t2high, t2low
+        integer :: lone_vertex_1, lone_vertex_2
+        call cross_prod(n2, (b2-a2), (c2-a2))
+        call dot_prod(d2, -n2, a2)
+        
+        call dot_prod(da1, n2, a1)
+        da1 = da1 + d2
+        call dot_prod(db1, n2, b1)
+        db1 = db1 + d2        
+        call dot_prod(dc1, n2, c1)
+        dc1 = dc1 + d2
+        if (da1 > zero .and. db1 > zero .and. dc1 > zero) then
+            length = 0.0
+            return
+        elseif (da1 < zero .and. db1 < zero .and. dc1 < zero) then
+            length = 0.0
+            return
+        end if
+        ! general case
+        call cross_prod(n1, (b1-a1), (c1-a1))
+        call dot_prod(d1, -n1, a1)
+
+        call cross_prod(d, n1, n2)
+        call dot_prod(pa1, d, a1)
+        call dot_prod(pb1, d, b1)
+        call dot_prod(pc1, d, c1)
+
+        ! need to figure out which vertex is by itself
+        if (da1 > 0) then
+            if (db1 > 0) then
+                lone_vertex_1 = 3
+            elseif (dc1 > 0) then
+                lone_vertex_1 = 2
+            else
+                lone_vertex_1 = 1
+            end if
+        else
+            if (db1 < 0) then
+                lone_vertex_1 = 3
+            elseif (dc1 < 0) then
+                lone_vertex_1 = 2
+            else
+                lone_vertex_1 = 1
+            end if
+        end if
+
+        if (lone_vertex_1 == 1) then
+            t11 = pb1 + (pa1 - pb1) * db1 / (db1 - da1)
+            t12 = pc1 + (pa1 - pc1) * dc1 / (dc1 - da1)
+        elseif (lone_vertex_1 == 2) then
+            t11 = pa1 + (pb1 - pa1) * da1 / (da1 - db1)
+            t12 = pc1 + (pb1 - pc1) * dc1 / (dc1 - db1) 
+        else
+            t11 = pa1 + (pc1 - pa1) * da1 / (da1 - dc1)
+            t12 = pb1 + (pc1 - pb1) * db1 / (db1 - dc1)
+        end if
+
+        call dot_prod(da2, n2, a2)
+        da2 = da2 + d2
+        call dot_prod(db2, n2, b2)
+        db2 = db2 + d2        
+        call dot_prod(dc2, n2, c2)
+        dc2 = dc2 + d2
+
+        call dot_prod(pa2, d, a2)
+        call dot_prod(pb2, d, b2)
+        call dot_prod(pc2, d, c2)
+
+        ! need to figure out which vertex is by itself
+        if (da2 > 0) then
+            if (db2 > 0) then
+                lone_vertex_2 = 3
+            elseif (dc2 > 0) then
+                lone_vertex_2 = 2
+            else
+                lone_vertex_2 = 1
+            end if
+        else
+            if (db2 < 0) then
+                lone_vertex_2 = 3
+            elseif (dc2 < 0) then
+                lone_vertex_2 = 2
+            else
+                lone_vertex_2 = 1
+            end if
+        end if
+
+        if (lone_vertex_2 == 1) then
+            t21 = pb2 + (pa2 - pb2) * db2 / (db2 - da2)
+            t22 = pc2 + (pa2 - pc2) * dc2 / (dc2 - da2)
+        elseif (lone_vertex_2 == 2) then
+            t21 = pa2 + (pb2 - pa2) * da2 / (da2 - db2)
+            t22 = pc2 + (pb2 - pc2) * dc2 / (dc2 - db2) 
+        else
+            t21 = pa2 + (pc2 - pa2) * da2 / (da2 - dc2)
+            t22 = pb2 + (pc2 - pb2) * db2 / (db2 - dc2)
+        end if
+
+        if (t11 > t12) then
+            t1high = t11
+            t1low = t12
+        else
+            t1high = t12
+            t1low = t11
+        end if
+        if (t21 > t22) then
+            t2high = t21
+            t2low = t22
+        else
+            t2high = t22
+            t2low = t21
+        end if
+        ! check if intervals overlap
+        if ((t1high < t2low) .OR. (t2high < t1low)) then
+            ! no overlap
+            length = 0.0
+            return
+        else
+            dt = min(t1high, t2high) - max(t1low, t2low)
+            length = dt*(d(1)**2 + d(2)**2 + d(3)**2)
+            return
+        end if
+    end subroutine intersect
 
 end module triangles

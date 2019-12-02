@@ -3,8 +3,8 @@
 
 python module triangles ! in 
     interface  ! in :triangles
-        module triangles_db ! in :triangles:triangles_db.f90
-            subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,dsquared,dsquaredd) ! in :triangles:triangles_db.f90:triangles_db
+        module triangles_db ! in :triangles:tapenade/triangles_db.f90
+            subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,dsquared,dsquaredd) ! in :triangles:tapenade/triangles_db.f90:triangles_db
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3),intent(in) :: ad
                 real(kind=8) dimension(3),intent(in) :: b
@@ -16,7 +16,7 @@ python module triangles ! in
                 real(kind=8) intent(out) :: dsquared
                 real(kind=8) intent(out) :: dsquaredd
             end subroutine point_tri_d
-            subroutine point_tri_b(a,ab0,b,bb,c,cb,p,pb,dsquared,dsquaredb) ! in :triangles:triangles_db.f90:triangles_db
+            subroutine point_tri_b(a,ab0,b,bb,c,cb,p,pb,dsquared,dsquaredb) ! in :triangles:tapenade/triangles_db.f90:triangles_db
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3), intent(out) :: ab0
                 real(kind=8) dimension(3),intent(in) :: b
@@ -28,7 +28,7 @@ python module triangles ! in
                 real(kind=8),intent(out) :: dsquared
                 real(kind=8),intent(in) :: dsquaredb
             end subroutine point_tri_b
-            subroutine line_line_d(p1,p1d,q1,q1d,p2,p2d,q2,q2d,dsquared,dsquaredd) ! in :triangles:triangles_db.f90:triangles_db
+            subroutine line_line_d(p1,p1d,q1,q1d,p2,p2d,q2,q2d,dsquared,dsquaredd) ! in :triangles:tapenade/triangles_db.f90:triangles_db
                 real(kind=8) dimension(3),intent(in) :: p1
                 real(kind=8) dimension(3),intent(in) :: p1d
                 real(kind=8) dimension(3),intent(in) :: q1
@@ -40,7 +40,7 @@ python module triangles ! in
                 real(kind=8) intent(out) :: dsquared
                 real(kind=8) intent(out) :: dsquaredd
             end subroutine line_line_d
-            subroutine line_line_b(p1,p1b,q1,q1b,p2,p2b,q2,q2b,dsquared,dsquaredb) ! in :triangles:triangles_db.f90:triangles_db
+            subroutine line_line_b(p1,p1b,q1,q1b,p2,p2b,q2,q2b,dsquared,dsquaredb) ! in :triangles:tapenade/triangles_db.f90:triangles_db
                 real(kind=8) dimension(3),intent(in) :: p1
                 real(kind=8) dimension(3),intent(out) :: p1b
                 real(kind=8) dimension(3),intent(in) :: q1
@@ -52,22 +52,63 @@ python module triangles ! in
                 real(kind=8) intent(out):: dsquared
                 real(kind=8) intent(in):: dsquaredb
             end subroutine line_line_b
+            subroutine intersect_d(a1,a1d,b1,b1d,c1,c1d,a2,a2d,b2,b2d,c2,c2d,length,lengthd) ! in :triangles:tapenade/triangles_db.f90:triangles_db
+                real(kind=8) dimension(3),intent(in) :: a1
+                real(kind=8) dimension(3),intent(in) :: a1d
+                real(kind=8) dimension(3),intent(in) :: b1
+                real(kind=8) dimension(3),intent(in) :: b1d
+                real(kind=8) dimension(3),intent(in) :: c1
+                real(kind=8) dimension(3),intent(in) :: c1d
+                real(kind=8) dimension(3),intent(in) :: a2
+                real(kind=8) dimension(3),intent(in) :: a2d
+                real(kind=8) dimension(3),intent(in) :: b2
+                real(kind=8) dimension(3),intent(in) :: b2d
+                real(kind=8) dimension(3),intent(in) :: c2
+                real(kind=8) dimension(3),intent(in) :: c2d
+                real(kind=8) intent(out) :: length
+                real(kind=8) intent(out) :: lengthd
+            end subroutine intersect_d
+            subroutine intersect_b(a1,a1b,b1,b1b,c1,c1b,a2,a2b,b2,b2b,c2,c2b,length,lengthb) ! in :triangles:tapenade/triangles_db.f90:triangles_db
+                real(kind=8) dimension(3),intent(in) :: a1
+                real(kind=8) dimension(3), intent(out) :: a1b
+                real(kind=8) dimension(3),intent(in) :: b1
+                real(kind=8) dimension(3), intent(out) :: b1b
+                real(kind=8) dimension(3),intent(in) :: c1
+                real(kind=8) dimension(3), intent(out) :: c1b
+                real(kind=8) dimension(3),intent(in) :: a2
+                real(kind=8) dimension(3), intent(out) :: a2b
+                real(kind=8) dimension(3),intent(in) :: b2
+                real(kind=8) dimension(3), intent(out) :: b2b
+                real(kind=8) dimension(3),intent(in) :: c2
+                real(kind=8) dimension(3), intent(out) :: c2b
+                real(kind=8), intent(out) :: length
+                real(kind=8),intent(in) :: lengthb
+            end subroutine intersect_b
         end module triangles_db
-        module triangles ! in :triangles:triangles.F90
-            subroutine point_tri(a,b,c,p,dsquared) ! in :triangles:triangles.F90:triangles
+        module triangles ! in :triangles:src/triangles.F90
+            subroutine point_tri(a,b,c,p,dsquared) ! in :triangles:src/triangles.F90:triangles
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3),intent(in) :: b
                 real(kind=8) dimension(3),intent(in) :: c
                 real(kind=8) dimension(3),intent(in) :: p
                 real(kind=8) intent(out) :: dsquared
             end subroutine point_tri
-            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :triangles:triangles.F90:triangles
+            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :triangles:src/triangles.F90:triangles
                 real(kind=8) dimension(3),intent(in) :: p1
                 real(kind=8) dimension(3),intent(in) :: q1
                 real(kind=8) dimension(3),intent(in) :: p2
                 real(kind=8) dimension(3),intent(in) :: q2
                 real(kind=8) intent(out) :: dsquared
             end subroutine line_line
+            subroutine intersect(a1,b1,c1,a2,b2,c2,length) ! in :triangles:src/triangles.F90:triangles
+                real(kind=8) dimension(3),intent(in) :: a1
+                real(kind=8) dimension(3),intent(in) :: b1
+                real(kind=8) dimension(3),intent(in) :: c1
+                real(kind=8) dimension(3),intent(in) :: a2
+                real(kind=8) dimension(3),intent(in) :: b2
+                real(kind=8) dimension(3),intent(in) :: c2
+                real(kind=8) intent(out) :: length
+            end subroutine intersect
         end module triangles
     end interface 
 end python module triangles

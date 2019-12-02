@@ -21,7 +21,7 @@ complex/complexify.mod: complex/complexify.F90
 	rm complexify.o
 
 tapenade/triangles_db.f90: src/triangles.F90
-	tapenade src/triangles.F90 -d -b -root point_tri -root line_line
+	tapenade src/triangles.F90 -d -b -root point_tri -root line_line -root intersect
 	mv triangles_db.f90 tapenade/triangles_db.f90
 
 clean:

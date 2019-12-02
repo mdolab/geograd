@@ -3,21 +3,30 @@
 
 python module triangles_complex ! in 
     interface  ! in :triangles_complex
-        module triangles ! in :triangles_complex:triangles_complex.F90
-            subroutine point_tri(a,b,c,p,dsquared) ! in :triangles_complex:triangles_complex.F90:triangles
+        module triangles ! in :triangles_complex:complex/triangles_complex.F90
+            subroutine point_tri(a,b,c,p,dsquared) ! in :triangles_complex:complex/triangles_complex.F90:triangles
                 complex(kind=8) dimension(3),intent(in) :: a
                 complex(kind=8) dimension(3),intent(in) :: b
                 complex(kind=8) dimension(3),intent(in) :: c
                 complex(kind=8) dimension(3),intent(in) :: p
                 complex(kind=8) intent(out) :: dsquared
             end subroutine point_tri
-            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :triangles_complex:triangles_complex.F90:triangles
+            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :triangles_complex:complex/triangles_complex.F90:triangles
                 complex(kind=8) dimension(3),intent(in) :: p1
                 complex(kind=8) dimension(3),intent(in) :: q1
                 complex(kind=8) dimension(3),intent(in) :: p2
                 complex(kind=8) dimension(3),intent(in) :: q2
                 complex(kind=8) intent(out) :: dsquared
             end subroutine line_line
+            subroutine intersect(a1,b1,c1,a2,b2,c2,length) ! in :triangles_complex:complex/triangles_complex.F90:triangles
+                complex(kind=8) dimension(3),intent(in) :: a1
+                complex(kind=8) dimension(3),intent(in) :: b1
+                complex(kind=8) dimension(3),intent(in) :: c1
+                complex(kind=8) dimension(3),intent(in) :: a2
+                complex(kind=8) dimension(3),intent(in) :: b2
+                complex(kind=8) dimension(3),intent(in) :: c2
+                complex(kind=8) intent(out) :: length
+            end subroutine intersect
         end module triangles
     end interface 
 end python module triangles_complex
