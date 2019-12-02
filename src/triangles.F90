@@ -201,7 +201,8 @@ module triangles
         real(kind=8) :: d2, da2, db2, dc2, pa2, pb2, pc2, t21, t22, t2high, t2low
         integer :: lone_vertex_1, lone_vertex_2
         call cross_prod(n2, (b2-a2), (c2-a2))
-        call dot_prod(d2, -n2, a2)
+        call dot_prod(d2, n2, a2)
+        d2 = -d2
         
         call dot_prod(da1, n2, a1)
         da1 = da1 + d2
@@ -209,17 +210,17 @@ module triangles
         db1 = db1 + d2        
         call dot_prod(dc1, n2, c1)
         dc1 = dc1 + d2
-        if (da1 > zero .and. db1 > zero .and. dc1 > zero) then
+        if ((da1 > zero) .and. (db1 > zero) .and. (dc1 > zero)) then
             length = 0.0
             return
-        elseif (da1 < zero .and. db1 < zero .and. dc1 < zero) then
+        elseif ((da1 < zero) .and. (db1 < zero) .and. (dc1 < zero)) then
             length = 0.0
             return
         end if
         ! general case
         call cross_prod(n1, (b1-a1), (c1-a1))
-        call dot_prod(d1, -n1, a1)
-
+        call dot_prod(d1, n1, a1)
+        d1 = -d1
         call cross_prod(d, n1, n2)
         call dot_prod(pa1, d, a1)
         call dot_prod(pb1, d, b1)
@@ -255,12 +256,12 @@ module triangles
             t12 = pb1 + (pc1 - pb1) * db1 / (db1 - dc1)
         end if
 
-        call dot_prod(da2, n2, a2)
-        da2 = da2 + d2
-        call dot_prod(db2, n2, b2)
-        db2 = db2 + d2        
-        call dot_prod(dc2, n2, c2)
-        dc2 = dc2 + d2
+        call dot_prod(da2, n1, a2)
+        da2 = da2 + d1
+        call dot_prod(db2, n1, b2)
+        db2 = db2 + d1        
+        call dot_prod(dc2, n1, c2)
+        dc2 = dc2 + d1
 
         call dot_prod(pa2, d, a2)
         call dot_prod(pb2, d, b2)
@@ -317,7 +318,7 @@ module triangles
             return
         else
             dt = min(t1high, t2high) - max(t1low, t2low)
-            length = dt*(d(1)**2 + d(2)**2 + d(3)**2)
+            length = dt/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
             return
         end if
     end subroutine intersect

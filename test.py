@@ -348,6 +348,81 @@ class TestLineLine(unittest.TestCase):
         self.assertAlmostEqual(d2, 0.5, 10)
         test_line_line_cs(p1, q1, p2, q2, self)
 
+def test_intersect_permute_edges(a1, b1, c1, a2, b2, c2, answer, tol, testcase):
+    d2 = t.intersect(a1, b1, c1, a2, b2, c2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    d2 = t.intersect(b1, c1, a1, a2, b2, c2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    d2 = t.intersect(c1, a1, b1, a2, b2, c2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    d2 = t.intersect(a1, b1, c1, b2, c2, a2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    d2 = t.intersect(a1, b1, c1, c2, a2, b2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+
+class TestIntersect(unittest.TestCase):
+    def setUp(self):
+        self.a1 = np.array([0.0, 0.0, 0.0])
+        self.b1 = np.array([1.0, 0.0, 0.0])
+        self.c1 = np.array([0.0, 1.0, 0.0])
+
+    def test_intersect_1_in_2(self):
+        # clamped neither side, intersecting
+        a2 = np.array([-1.0, 0.5, -0.1])
+        b2 = np.array([1.0, 0.5, -0.1])
+        c2 = np.array([0.5, 0.5, 5.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.5, 10, self)
+
+    def test_intersect_2_in_1(self):
+        # clamped neither side, intersecting
+        a2 = np.array([0.75, 0.5, -2.0])
+        b2 = np.array([-0.25, 0.5, -2.0])
+        c2 = np.array([0.25, 0.5, 1.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/3, 10, self)
+
+    def test_intersect_right_edge(self):
+        # clamped neither side, intersecting
+        a2 = np.array([1.0, 0.5, -2.0])
+        b2 = np.array([0.0, 0.5, -2.0])
+        c2 = np.array([0.5, 0.5, 1.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/6, 10, self)
+
+    def test_intersect_left_edge(self):
+        # clamped neither side, intersecting
+        a2 = np.array([0.5, 0.5, -2.0])
+        b2 = np.array([-0.5, 0.5, -2.0])
+        c2 = np.array([0.0, 0.5, 1.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/6, 10, self)
+
+    def test_intersect_scaling_independence(self):
+        # clamped neither side, intersecting
+        a2 = np.array([0.5, 0.5, -2.0])
+        b2 = np.array([-0.5, 0.5, -2.0])
+        c2 = np.array([0.0, 0.5, 1.0])
+        test_intersect_permute_edges(self.a1*12, self.b1*10, self.c1*7, a2, b2, c2, 1/6, 10, self)
+
+    def test_no_intersect_not_easy(self):
+        a2 = np.array([3.0, 0.5, -0.1])
+        b2 = np.array([5.0, 0.5, -0.1])
+        c2 = np.array([4.5, 0.5, 5.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.0, 10, self)
+
+        a2 = np.array([-3.0, 0.5, -0.1])
+        b2 = np.array([-5.0, 0.5, -0.1])
+        c2 = np.array([-4.5, 0.5, 5.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.0, 10, self)
+
+    def test_no_intersect_easy(self):
+        # separating axis test
+        a2 = np.array([0.0, 0.0, 0.001])
+        b2 = np.array([1.0, 0.0, 0.001])
+        c2 = np.array([0.0, 1.0, 0.002])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.0, 10, self)
+
+        a2 = np.array([0.0, 0.0, -0.001])
+        b2 = np.array([1.0, 0.0, -0.001])
+        c2 = np.array([0.0, 1.0, -0.002])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.0, 10, self)
 
 if __name__ == '__main__':
     unittest.main()
