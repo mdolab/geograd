@@ -165,6 +165,124 @@ def test_line_line_cs(p1, q1, p2, q2, testcase):
     #     print(dd2_cs)
     testcase.assertAlmostEqual(rev_derivs[3][2], dd2_cs, 10)
 
+def test_intersect_cs(a1, b1, c1, a2, b2, c2, testcase):
+    d_base = t.intersect(a1, b1, c1, a2, b2, c2)
+    rev_derivs = tdb.intersect_b(a1, b1, c1, a2, b2, c2, 1.0)
+
+    # test derivs wrt a1
+    a1cs = a1 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1cs, b1, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[0][0], d_cs, 10)
+
+    a1cs = a1 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1cs, b1, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[0][1], d_cs, 10)
+
+    a1cs = a1 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1cs, b1, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[0][2], d_cs, 10)
+
+    # test derivs wrt b1
+    b1cs = b1 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1cs, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[1][0], d_cs, 10)
+
+    b1cs = b1 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1cs, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[1][1], d_cs, 10)
+
+    b1cs = b1 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1, b1cs, c1, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[1][2], d_cs, 10)
+
+    # test derivs wrt c1
+    c1cs = c1 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1cs, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[2][0], d_cs, 10)
+
+    c1cs = c1 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1cs, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[2][1], d_cs, 10)
+
+    c1cs = c1 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1cs, a2, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[2][2], d_cs, 10)
+
+    # test derivs wrt a2
+    a2cs = a2 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2cs, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[3][0], d_cs, 10)
+
+    a2cs = a2 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2cs, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[3][1], d_cs, 10)
+
+    a2cs = a2 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2cs, b2, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[3][2], d_cs, 10)
+
+    # test derivs wrt b2
+    b2cs = b2 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2cs, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[4][0], d_cs, 10)
+
+    b2cs = b2 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2cs, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[4][1], d_cs, 10)
+
+    b2cs = b2 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2cs, c2)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[4][2], d_cs, 10)
+
+    # test derivs wrt c2
+    c2cs = c2 + np.array([(0+1j)*h, 0.0, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2, c2cs)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[5][0], d_cs, 10)
+
+    c2cs = c2 + np.array([0.0, (0+1j)*h, 0.0])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2, c2cs)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[5][1], d_cs, 10)
+
+    c2cs = c2 + np.array([0.0, 0.0, (0+1j)*h])
+    d_cs = np.imag(tcs.intersect(a1, b1, c1, a2, b2, c2cs)-d_base)/h
+    # if (d_cs != 0.0): 
+    #     print(d_cs)
+    testcase.assertAlmostEqual(rev_derivs[5][2], d_cs, 10)
+
 class TestPointTri(unittest.TestCase):
     def setUp(self):
         self.a = np.array([0.0, 0.0, 0.0])
@@ -351,14 +469,31 @@ class TestLineLine(unittest.TestCase):
 def test_intersect_permute_edges(a1, b1, c1, a2, b2, c2, answer, tol, testcase):
     d2 = t.intersect(a1, b1, c1, a2, b2, c2)
     testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(a1, b1, c1, a2, b2, c2, testcase)
+
     d2 = t.intersect(b1, c1, a1, a2, b2, c2)
     testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(b1, c1, a1, a2, b2, c2, testcase)
+
     d2 = t.intersect(c1, a1, b1, a2, b2, c2)
     testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(c1, a1, b1, a2, b2, c2, testcase)
+
+    d2 = t.intersect(b1, a1, c1, a2, b2, c2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(b1, a1, c1, a2, b2, c2, testcase)
+
     d2 = t.intersect(a1, b1, c1, b2, c2, a2)
     testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(a1, b1, c1, b2, c2, a2, testcase)
+
     d2 = t.intersect(a1, b1, c1, c2, a2, b2)
     testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(a1, b1, c1, c2, a2, b2, testcase)
+
+    d2 = t.intersect(a1, b1, c1, c2, b2, a2)
+    testcase.assertAlmostEqual(d2, answer, tol)
+    test_intersect_cs(a1, b1, c1, c2, b2, a2, testcase)
 
 class TestIntersect(unittest.TestCase):
     def setUp(self):
@@ -366,36 +501,38 @@ class TestIntersect(unittest.TestCase):
         self.b1 = np.array([1.0, 0.0, 0.0])
         self.c1 = np.array([0.0, 1.0, 0.0])
 
+
+    def test_intersect_coplanar(self):
+        a2 = self.a1 + np.array([2.0, 2.0, 0.0])
+        b2 = np.array([1.0, 0.5, -0.1]) + np.array([2.0, 2.0, 0.0])
+        c2 = np.array([0.5, 0.5, 5.0]) + np.array([2.0, 2.0, 0.0])
+        test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.0, 10, self)
+
     def test_intersect_1_in_2(self):
-        # clamped neither side, intersecting
         a2 = np.array([-1.0, 0.5, -0.1])
         b2 = np.array([1.0, 0.5, -0.1])
         c2 = np.array([0.5, 0.5, 5.0])
         test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 0.5, 10, self)
 
     def test_intersect_2_in_1(self):
-        # clamped neither side, intersecting
         a2 = np.array([0.75, 0.5, -2.0])
         b2 = np.array([-0.25, 0.5, -2.0])
         c2 = np.array([0.25, 0.5, 1.0])
         test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/3, 10, self)
 
     def test_intersect_right_edge(self):
-        # clamped neither side, intersecting
         a2 = np.array([1.0, 0.5, -2.0])
         b2 = np.array([0.0, 0.5, -2.0])
         c2 = np.array([0.5, 0.5, 1.0])
         test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/6, 10, self)
 
     def test_intersect_left_edge(self):
-        # clamped neither side, intersecting
         a2 = np.array([0.5, 0.5, -2.0])
         b2 = np.array([-0.5, 0.5, -2.0])
         c2 = np.array([0.0, 0.5, 1.0])
         test_intersect_permute_edges(self.a1, self.b1, self.c1, a2, b2, c2, 1/6, 10, self)
 
     def test_intersect_scaling_independence(self):
-        # clamped neither side, intersecting
         a2 = np.array([0.5, 0.5, -2.0])
         b2 = np.array([-0.5, 0.5, -2.0])
         c2 = np.array([0.0, 0.5, 1.0])
