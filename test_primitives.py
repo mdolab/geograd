@@ -1,8 +1,8 @@
 import numpy as np 
 import unittest
-from triangles import triangles as t
-from triangles import triangles_db as tdb 
-from triangles_complex import triangles as tcs 
+from geograd import triangles as t
+from geograd import triangles_db as tdb 
+from geograd_complex import triangles as tcs 
 h = 1e-15
 
 def test_point_tri_cs(a, b, c, p, testcase):

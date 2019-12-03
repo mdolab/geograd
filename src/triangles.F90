@@ -191,15 +191,37 @@ module triangles
 
     end subroutine line_line
 
+    subroutine maxloc3(a, maxind)
+        implicit none
+        real(kind=8), dimension(3), intent(in) :: a
+        integer, intent(out) :: maxind
+
+        if (a(1) > a(2)) then
+            if (a(1) > a(3)) then
+                maxind = 1 
+                return
+            else
+                maxind = 3
+                return
+            end if
+        elseif (a(2)>a(3)) then
+            maxind = 2
+            return
+        else
+            maxind = 3
+            return
+        end if
+    end subroutine maxloc3
+
     subroutine intersect(a1, b1, c1, a2, b2, c2, length)
         implicit none
         real(kind=8), dimension(3), intent(in) :: a1, b1, c1, a2, b2, c2
         real(kind=8), intent(out) :: length
-        real(kind=8), dimension(3) :: n1, n2, d
+        real(kind=8), dimension(3) :: n1, n2, d, absd
         real(kind=8), parameter :: EPS = 1e-12
         real(kind=8) :: d1, da1, db1, dc1, pa1, pb1, pc1, t11, t12, t1high, t1low, dt
         real(kind=8) :: d2, da2, db2, dc2, pa2, pb2, pc2, t21, t22, t2high, t2low
-        integer :: lone_vertex_1, lone_vertex_2
+        integer :: lone_vertex_1, lone_vertex_2, maxind
         call cross_prod(n2, (b2-a2), (c2-a2))
         call dot_prod(d2, n2, a2)
         d2 = -d2
@@ -210,6 +232,7 @@ module triangles
         db1 = db1 + d2        
         call dot_prod(dc1, n2, c1)
         dc1 = dc1 + d2
+
         if ((da1 > zero) .and. (db1 > zero) .and. (dc1 > zero)) then
             length = 0.0
             return
@@ -217,14 +240,37 @@ module triangles
             length = 0.0
             return
         end if
+        
         ! general case
         call cross_prod(n1, (b1-a1), (c1-a1))
         call dot_prod(d1, n1, a1)
         d1 = -d1
+        
+        call dot_prod(da2, n1, a2)
+        da2 = da2 + d1
+        call dot_prod(db2, n1, b2)
+        db2 = db2 + d1        
+        call dot_prod(dc2, n1, c2)
+        dc2 = dc2 + d1
+
+        if ((da2 > zero) .and. (db2 > zero) .and. (dc2 > zero)) then
+            length = 0.0
+            return
+        elseif ((da2 < zero) .and. (db2 < zero) .and. (dc2 < zero)) then
+            length = 0.0
+            return
+        end if
+
+
         call cross_prod(d, n1, n2)
-        call dot_prod(pa1, d, a1)
-        call dot_prod(pb1, d, b1)
-        call dot_prod(pc1, d, c1)
+        absd = abs(d)
+        call maxloc3(absd, maxind)
+        pa1 = a1(maxind)
+        pb1 = b1(maxind)
+        pc1 = c1(maxind)
+        !call dot_prod(pa1, d, a1)
+        !call dot_prod(pb1, d, b1)
+        !call dot_prod(pc1, d, c1)
 
         ! need to figure out which vertex is by itself
         if (da1 > 0) then
@@ -256,16 +302,14 @@ module triangles
             t12 = pb1 + (pc1 - pb1) * db1 / (db1 - dc1)
         end if
 
-        call dot_prod(da2, n1, a2)
-        da2 = da2 + d1
-        call dot_prod(db2, n1, b2)
-        db2 = db2 + d1        
-        call dot_prod(dc2, n1, c2)
-        dc2 = dc2 + d1
 
-        call dot_prod(pa2, d, a2)
-        call dot_prod(pb2, d, b2)
-        call dot_prod(pc2, d, c2)
+
+        pa2 = a2(maxind)
+        pb2 = b2(maxind)
+        pc2 = c2(maxind)
+        ! call dot_prod(pa2, d, a2)
+        ! call dot_prod(pb2, d, b2)
+        ! call dot_prod(pc2, d, c2)
 
         ! need to figure out which vertex is by itself
         if (da2 > 0) then
@@ -318,7 +362,7 @@ module triangles
             return
         else
             dt = min(t1high, t2high) - max(t1low, t2low)
-            length = dt/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
+            length = dt!/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
             return
         end if
     end subroutine intersect

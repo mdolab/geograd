@@ -1,20 +1,24 @@
 default: python3 python3_complex test
 
 pyf: tapenade/triangles_db.f90 src/triangles.F90
-	python3 -m numpy.f2py tapenade/triangles_db.f90 src/triangles.F90 -m triangles -h f2py/triangles.pyf
+	python3 -m numpy.f2py tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 -m geograd -h f2py/geograd.pyf
 
-pyf_complex: complex/triangles_complex.F90
-	python3 -m numpy.f2py complex/triangles_complex.F90 -m triangles_complex -h f2py/triangles_complex.pyf
+pyf_complex: complex/triangles_complex.F90 complex/geograd_complex.F90
+	python3 -m numpy.f2py complex/triangles_complex.F90 complex/geograd_complex.F90 -m geograd_complex -h f2py/geograd_complex.pyf
 
-python3_complex: complex/triangles_complex.F90 f2py/triangles_complex.pyf complex/complexify.mod
-	python3 -m numpy.f2py -c f2py/triangles_complex.pyf complex/triangles_complex.F90 complex/complexify.F90
+python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/geograd_complex.pyf complex/complexify.mod
+	python3 -m numpy.f2py -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90
 
-python3: tapenade/triangles_db.f90 f2py/triangles.pyf src/triangles.F90
-	python3 -m numpy.f2py -c f2py/triangles.pyf tapenade/triangles_db.f90 src/triangles.F90 tapenade/adBuffer.f tapenade/adStack.c
+python3: tapenade/triangles_db.f90 f2py/geograd.pyf src/triangles.F90 src/geograd.F90
+	python3 -m numpy.f2py -c f2py/geograd.pyf tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 tapenade/adBuffer.f tapenade/adStack.c
 
 complex/triangles_complex.F90: src/triangles.F90
 	python complex/complexify.py src/triangles.F90
 	mv newFile complex/triangles_complex.F90
+
+complex/geograd_complex.F90: src/geograd.F90
+	python complex/complexify.py src/geograd.F90
+	mv newFile complex/geograd_complex.F90
 
 complex/complexify.mod: complex/complexify.F90
 	gfortran -c complex/complexify.F90
@@ -36,4 +40,5 @@ clean:
 	find . -name '*_complex.F90' -delete
 
 test:
-	python3 test.py
+	python3 test_primitives.py
+	python3 test_integration.py

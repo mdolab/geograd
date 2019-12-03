@@ -1,0 +1,51 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module geograd_complex ! in 
+    interface  ! in :geograd_complex
+        module triangles ! in :geograd_complex:complex/triangles_complex.F90
+            subroutine point_tri(a,b,c,p,dsquared) ! in :geograd_complex:complex/triangles_complex.F90:triangles
+                complex(kind=8) dimension(3),intent(in) :: a
+                complex(kind=8) dimension(3),intent(in) :: b
+                complex(kind=8) dimension(3),intent(in) :: c
+                complex(kind=8) dimension(3),intent(in) :: p
+                complex(kind=8) intent(out) :: dsquared
+            end subroutine point_tri
+            subroutine line_line(p1,q1,p2,q2,dsquared) ! in :geograd_complex:complex/triangles_complex.F90:triangles
+                complex(kind=8) dimension(3),intent(in) :: p1
+                complex(kind=8) dimension(3),intent(in) :: q1
+                complex(kind=8) dimension(3),intent(in) :: p2
+                complex(kind=8) dimension(3),intent(in) :: q2
+                complex(kind=8) intent(out) :: dsquared
+            end subroutine line_line
+            subroutine intersect(a1,b1,c1,a2,b2,c2,length) ! in :geograd_complex:complex/triangles_complex.F90:triangles
+                complex(kind=8) dimension(3),intent(in) :: a1
+                complex(kind=8) dimension(3),intent(in) :: b1
+                complex(kind=8) dimension(3),intent(in) :: c1
+                complex(kind=8) dimension(3),intent(in) :: a2
+                complex(kind=8) dimension(3),intent(in) :: b2
+                complex(kind=8) dimension(3),intent(in) :: c2
+                complex(kind=8) intent(out) :: length
+            end subroutine intersect
+        end module triangles
+        module geograd ! in :geograd_complex:complex/geograd_complex.F90
+            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in) ! in :geograd_complex:complex/geograd_complex.F90:geograd
+                complex(kind=8) intent(out) :: ks
+                complex(kind=8) intent(out) :: intersect_length
+                complex(kind=8) intent(out) :: mindist
+                complex(kind=8) dimension(n1,3),intent(in) :: a1
+                complex(kind=8) dimension(n1,3),intent(in),depend(n1) :: b1
+                complex(kind=8) dimension(n1,3),intent(in),depend(n1) :: c1
+                complex(kind=8) dimension(n2,3),intent(in) :: a2
+                complex(kind=8) dimension(n2,3),intent(in),depend(n2) :: b2
+                complex(kind=8) dimension(n2,3),intent(in),depend(n2) :: c2
+                integer, optional,intent(in),check(shape(a1,0)==n1),depend(a1) :: n1=shape(a1,0)
+                integer, optional,intent(in),check(shape(a2,0)==n2),depend(a2) :: n2=shape(a2,0)
+                complex(kind=8),intent(in) :: mindist_in
+            end subroutine compute
+        end module geograd
+    end interface 
+end python module geograd_complex
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
