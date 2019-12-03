@@ -11,21 +11,41 @@ module geograd
         end if
     end subroutine compare_and_swap_minimum
 
-    subroutine compute(KS, intersect_length, mindist, A1, B1, C1, A2, B2, C2, n1, n2, mindist_in)
+    subroutine minval_and_loc(A, length_A, min_value, min_index)
+        implicit none
+        real(kind=8), dimension(length_A), intent(in) :: A
+        integer, intent(in) :: length_A
+        real(kind=8), intent(out) :: min_value
+        integer, intent(out) :: min_index
+        integer :: count
+        min_value = A(1)
+        min_index = 1
+        do count = 2, length_A
+            if (A(count) < min_value) then
+                min_value = A(count)
+                min_index = count
+            end if
+        end do
+        RETURN
+    end subroutine minval_and_loc
+
+    subroutine compute(KS, intersect_length, mindist, A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho)
         use triangles
         implicit none
         integer, intent(in) :: n1, n2 ! array dimensions of first and second triangulated surfaces
         real(kind=8), dimension(3,n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
         real(kind=8), dimension(3,n2), INTENT(in) :: A2, B2, C2 ! second triangulated surface vertices
-        real(kind=8), INTENT(in) :: mindist_in ! known global minimum distance (used for second pass, computing KS)
+        real(kind=8), INTENT(in) :: mindist_in, rho ! known global minimum distance (used for second pass, computing KS)
         real(kind=8), intent(out) :: KS, intersect_length, mindist ! results
-        integer :: tri_ind_1, tri_ind_2 ! loop indices
-        real(kind=8) :: dsquared, cur_min_dist, intersect_temp
+        integer :: tri_ind_1, tri_ind_2, minloc_index ! loop indices
+        real(kind=8) :: d, cur_min_dist, intersect_temp, ks_accumulator
         real(kind=8), dimension(15) :: distance_vec
         real(kind=8), PARAMETER :: second_pass_flag = -1.0
 
         intersect_length = 0.0_8
         cur_min_dist = 9.9e10
+        ks_accumulator = 0.0_8
+
         do tri_ind_1 = 1, n1
             do tri_ind_2 = 1, n2
                 ! do 9 line-line comparison tests
@@ -47,10 +67,12 @@ module geograd
                 call point_tri(A2(:,tri_ind_2), B2(:,tri_ind_2), C2(:,tri_ind_2), B1(:,tri_ind_1), distance_vec(14))
                 call point_tri(A2(:,tri_ind_2), B2(:,tri_ind_2), C2(:,tri_ind_2), C1(:,tri_ind_1), distance_vec(15))
 
-                dsquared = minval(distance_vec)
-                call compare_and_swap_minimum(cur_min_dist, dsquared)
+                call minval_and_loc(distance_vec, 15, d, minloc_index)
+                call compare_and_swap_minimum(cur_min_dist, d)
                 
                 if (mindist_in /= second_pass_flag) then
+                ! compute KS function on second pass only
+                    ks_accumulator = ks_accumulator + sum(exp((mindist_in - distance_vec)*rho))
                 ! compute the intersection on second pass only
                     call intersect(A1(:,tri_ind_1), B1(:,tri_ind_1), C1(:,tri_ind_1), &
                     A2(:,tri_ind_2), B2(:,tri_ind_2), C2(:,tri_ind_2), intersect_temp)
@@ -58,7 +80,11 @@ module geograd
                 end if
             end do
         end do
-        KS = cur_min_dist
+        if (mindist_in /= second_pass_flag) then
+            KS = (1 / rho) * log(ks_accumulator) - mindist_in
+        else
+            KS = zero
+        end if
         mindist = cur_min_dist
     end subroutine compute
 

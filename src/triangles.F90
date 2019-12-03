@@ -21,10 +21,10 @@ module triangles
     end subroutine cross_prod
 
 
-    subroutine point_tri(a, b, c, p, dsquared)
+    subroutine point_tri(a, b, c, p, d)
         implicit none
         real(kind=8), dimension(3), intent(in) :: a, b, c, p
-        real(kind=8), intent(out) :: dsquared
+        real(kind=8), intent(out) :: d
 
         real(kind=8), dimension(3) :: ab, ac, ap, bp, cp, closepoint, diff, dummydiff
         real(kind=8) :: d1, d2, d3, d4, d5, d6
@@ -39,7 +39,8 @@ module triangles
             closepoint = a  ! barycentric 1, 0, 0
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return 
         end if
 
@@ -51,7 +52,8 @@ module triangles
             closepoint = b ! barycentric 0, 1, 0
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return
         end if
 
@@ -62,7 +64,8 @@ module triangles
             closepoint = a + v * ab ! barycentric coordinates (1-v,v,0)
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return 
         end if
         
@@ -74,7 +77,8 @@ module triangles
             closepoint = c ! barycentric coordinates (0,0,1)
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return
         end if
 
@@ -85,7 +89,8 @@ module triangles
             closepoint = a + w * ac ! barycentric (1-w, 0, w)
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return
         end if
 
@@ -96,7 +101,8 @@ module triangles
             closepoint = b + w * (c - b) ! barycentric (0, 1-w, w)
             diff = closepoint - p
             dummydiff = diff
-            call dot_prod(dsquared, diff, dummydiff)
+            call dot_prod(d, diff, dummydiff)
+            d = sqrt(d)
             return
         end if
 
@@ -107,7 +113,8 @@ module triangles
         closepoint = a + ab * v + ac * w
         diff = closepoint - p
         dummydiff = diff
-        call dot_prod(dsquared, diff, dummydiff)
+        call dot_prod(d, diff, dummydiff)
+        d = sqrt(d)
         return
         
     end subroutine point_tri
@@ -125,10 +132,10 @@ module triangles
         end if
     end subroutine clamp
 
-    subroutine line_line(p1, q1, p2, q2, dsquared)
+    subroutine line_line(p1, q1, p2, q2, d)
         implicit none
         real(kind=8), dimension(3), intent(in) :: p1, q1, p2, q2
-        real(kind=8), intent(out) :: dsquared
+        real(kind=8), intent(out) :: d
         real(kind=8), dimension(3) :: d1, d2, r, diff, c1, c2, dummy3
         real(kind=8), parameter :: EPS = 1e-12
         real(kind=8) :: a, b, c, e, f, s, t, denom
@@ -146,7 +153,8 @@ module triangles
             ! both segments degenrate into points
             diff = q1 - p1
             dummy3 = diff
-            call dot_prod(dsquared, diff, dummy3)
+            call dot_prod(d, diff, dummy3)
+            d = sqrt(d)
             return
         end if
         if (a <= EPS) then
@@ -186,7 +194,8 @@ module triangles
         c2 = p2 + d2 * t
         diff = c2 - c1
         dummy3 = diff
-        call dot_prod(dsquared, diff, dummy3)
+        call dot_prod(d, diff, dummy3)
+        d = sqrt(d)
         return
 
     end subroutine line_line
@@ -245,7 +254,7 @@ module triangles
         call cross_prod(n1, (b1-a1), (c1-a1))
         call dot_prod(d1, n1, a1)
         d1 = -d1
-        
+
         call dot_prod(da2, n1, a2)
         da2 = da2 + d1
         call dot_prod(db2, n1, b2)

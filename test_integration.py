@@ -15,28 +15,28 @@ class TestIntersectTrivial(unittest.TestCase):
         a2 = np.repeat(np.array([-1.0, 0.5, -0.1]),2).reshape(3,2)
         b2 = np.repeat(np.array([1.0, 0.5, -0.1]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 5.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
         self.assertAlmostEqual(result[1], 0.5*4, 10)
 
     def test_intersect_2_in_1(self):
         a2 = np.repeat(np.array([0.75, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.25, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.25, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
         self.assertAlmostEqual(result[1], 1/3*4, 10)
 
     def test_intersect_right_edge(self):
         a2 = np.repeat(np.array([1.0, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([0.0, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
     def test_intersect_left_edge(self):
         a2 = np.repeat(np.array([0.5, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.5, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.0, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
 class MinDistSTLTestCase1(unittest.TestCase):
@@ -60,9 +60,12 @@ class MinDistSTLTestCase1(unittest.TestCase):
         self.objp2 = object_mesh[:,2,:].transpose()
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0)
-        self.assertAlmostEqual(2.33166**2, result[2], 4)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        self.assertAlmostEqual(2.33166, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        self.assertAlmostEqual(-2.3137489765687533, result2[0], 8)
+
 
 class MinDistSTLTestCase2(unittest.TestCase):
     def setUp(self):
@@ -85,10 +88,11 @@ class MinDistSTLTestCase2(unittest.TestCase):
         self.objp2 = object_mesh[:,2,:].transpose()
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0)
-        self.assertAlmostEqual(0.0178387**2, result[2], 6)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        self.assertAlmostEqual(0.0178387, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
-
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        self.assertAlmostEqual(-0.013197699692565058, result2[0], 8)
 
 
 class MinDistSTLTestCase3(unittest.TestCase):
@@ -112,9 +116,11 @@ class MinDistSTLTestCase3(unittest.TestCase):
         self.objp2 = object_mesh[:,2,:].transpose()
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0)
-        self.assertAlmostEqual(0.02212236**2, result[2], 6)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        self.assertAlmostEqual(0.02212236, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        self.assertAlmostEqual(-0.015186799790516424, result2[0], 8)
 
 
 # test the other two blobs
