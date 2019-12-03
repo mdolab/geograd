@@ -6,10 +6,10 @@ pyf: tapenade/triangles_db.f90 src/triangles.F90
 pyf_complex: complex/triangles_complex.F90 complex/geograd_complex.F90
 	python3 -m numpy.f2py complex/triangles_complex.F90 complex/geograd_complex.F90 -m geograd_complex -h f2py/geograd_complex.pyf
 
-python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/geograd_complex.pyf complex/complexify.mod
-	python3 -m numpy.f2py -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90
+python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/geograd_complex.pyf complexify.mod
+	python3 -m numpy.f2py -DUSE_COMPLEX -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90
 
-python3: tapenade/triangles_db.f90 f2py/geograd.pyf src/triangles.F90 src/geograd.F90
+python3: tapenade/triangles_db.f90 f2py/geograd.pyf src/triangles.F90 src/geograd.F90 triangles_db.mod
 	python3 -m numpy.f2py -c f2py/geograd.pyf tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 tapenade/adBuffer.f tapenade/adStack.c
 
 complex/triangles_complex.F90: src/triangles.F90
@@ -20,9 +20,13 @@ complex/geograd_complex.F90: src/geograd.F90
 	python complex/complexify.py src/geograd.F90
 	mv newFile complex/geograd_complex.F90
 
-complex/complexify.mod: complex/complexify.F90
+complexify.mod: complex/complexify.F90
 	gfortran -c complex/complexify.F90
 	rm complexify.o
+
+triangles_db.mod: tapenade/triangles_db.f90
+	gfortran -c tapenade/triangles_db.f90
+	rm triangles_db.o
 
 tapenade/triangles_db.f90: src/triangles.F90
 	tapenade src/triangles.F90 -d -b -root point_tri -root line_line -root intersect
