@@ -1,0 +1,19 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module mpitest ! in 
+    interface  ! in :mpitest
+        module mpitest ! in :mpitest:src/mpitest.F90
+            subroutine scat_gath_test(a,n,sum_out,a_out) ! in :mpitest:src/mpitest.F90:mpitest
+                use mpi
+                real(kind=8) dimension(3,n),intent(in) :: a
+                integer, optional,intent(in),check(shape(a,1)==n),depend(a) :: n=shape(a,1)
+                real(kind=8) intent(out) :: sum_out
+                real(kind=8) dimension(3,n),intent(out),depend(n) :: a_out
+            end subroutine scat_gath_test
+        end module mpitest
+    end interface 
+end python module mpitest
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
