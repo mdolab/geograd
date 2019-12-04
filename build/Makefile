@@ -58,3 +58,4 @@ clean:
 test:
 	python3 test_primitives.py
 	python3 test_integration.py
+	mpirun -np 4 python3 test_integration_parallel.py

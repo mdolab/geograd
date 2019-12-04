@@ -40,6 +40,7 @@ module geograd_parallel
     subroutine compute_derivs(KS, intersect_length, mindist, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
          A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho)
         use triangles_db
+        use mpi
         implicit none
         integer, intent(in) :: n1, n2 ! array dimensions of first and second triangulated surfaces
         real(kind=8), dimension(3,n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
@@ -48,33 +49,70 @@ module geograd_parallel
         real(kind=8), intent(out) :: KS, intersect_length, mindist ! results
         real(kind=8), intent(out), dimension(3,n1) :: dKSdA1, dKSdB1, dKSdC1
         real(kind=8), intent(out), dimension(3,n2) :: dKSdA2, dKSdB2, dKSdC2
-        integer :: tri_ind_1, tri_ind_2, minloc_index, count, is_less_flag ! loop indices
-        real(kind=8) :: d, cur_min_dist, garbage, base_exp_accumulator, deriv_exp_accumulator
+        integer :: tri_ind_1_local, tri_ind_2, minloc_index, count, is_less_flag ! loop indices
+        real(kind=8) :: d, cur_min_dist, garbage, base_exp_accumulator, base_exp_accumulator_local
         real(kind=8), dimension(3) :: sumdA1, sumdB1, sumdC1, sumdA2, sumdB2, sumdC2
         real(kind=8), dimension(15) :: distance_vec ! holds the pairwise distances from the batch
         real(kind=8), dimension(3,15) :: dA1, dB1, dC1, dA2, dB2, dC2, deriv_exp_temp3 ! holds the reverse mode derivatives for the batch
         real(kind=8), dimension(15) :: dist_subtract_temp, base_exp_temp, deriv_exp_temp ! these hold some intermediate quantities that need to get accumulated
         real(kind=8) :: rev_seed
         real(kind=8), dimension(3) :: A1batch, B1batch, C1batch, A2batch, B2batch, C2batch
-        real(kind=8), dimension(3) :: ddminA1, ddminB1, ddminC1, ddminA2, ddminB2, ddminC2
-        integer :: dmin_index_1, dmin_index_2
-        dKSdA1 = 0.0
-        dKSdB1 = 0.0
-        dKSdC1 = 0.0
-        dKSdA2 = 0.0
-        dKSdB2 = 0.0
-        dKSdC2 = 0.0
-        base_exp_accumulator = 0.0
-        deriv_exp_accumulator = 0.0
+        real(kind=8), allocatable :: dKSdA1_local(:,:), dKSdB1_local(:,:), dKSdC1_local(:,:)
+        real(kind=8), dimension(3,n2) :: dKSdA2_local, dKSdB2_local, dKSdC2_local
+        
+        integer :: error, id, n_procs
+        integer, allocatable :: proc_split(:), proc_disp(:)
+        integer :: n_tris_per_proc_base, n_tris_remaining, proc_idx, displ, slice_start, slice_end
+        integer, parameter :: n_dim = 3
+ 
+        real(kind=8), allocatable :: A1_local(:,:), B1_local(:,:), C1_local(:,:)
+ 
+        call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
+        call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
+ 
+        allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
+        ! compute the even processor split
+        n_tris_per_proc_base = n1 / n_procs
+        n_tris_remaining = mod(n1, n_procs)
+        displ = 0
+        do proc_idx = 0, n_procs-1
+            if (proc_idx < n_tris_remaining) then
+                proc_split(proc_idx) = (n_tris_per_proc_base + 1)
+            else
+                proc_split(proc_idx) = (n_tris_per_proc_base)
+            end if
+            proc_disp(proc_idx) = displ
+            displ = displ + proc_split(proc_idx)
+        end do
+        ! get array slices
+        allocate(A1_local(3, proc_split(id)), B1_local(3, proc_split(id)), C1_local(3, proc_split(id)))
+        slice_start=proc_disp(id) + 1
+        slice_end=proc_split(id) + slice_start - 1
+
+        A1_local = A1(:,slice_start:slice_end)
+        B1_local = B1(:,slice_start:slice_end)
+        C1_local = C1(:,slice_start:slice_end)
+
+        allocate(dKSdA1_local(3, proc_split(id)), &
+                 dKSdB1_local(3, proc_split(id)), &
+                 dKSdC1_local(3, proc_split(id)))
+
+        dKSdA1_local = 0.0
+        dKSdB1_local = 0.0
+        dKSdC1_local = 0.0
+        dKSdA2_local = 0.0
+        dKSdB2_local = 0.0
+        dKSdC2_local = 0.0
+        base_exp_accumulator_local = 0.0
         cur_min_dist = 9.9e10
 
 
-        do tri_ind_1 = 1, n1
+        do tri_ind_1_local = 1, proc_split(id)
             do tri_ind_2 = 1, n2
                 ! do 9 line-line comparison tests and derivatives
-                A1batch = A1(:,tri_ind_1)
-                B1batch = B1(:,tri_ind_1)
-                C1batch = C1(:,tri_ind_1)
+                A1batch = A1_local(:,tri_ind_1_local)
+                B1batch = B1_local(:,tri_ind_1_local)
+                C1batch = C1_local(:,tri_ind_1_local)
                 A2batch = A2(:,tri_ind_2)
                 B2batch = B2(:,tri_ind_2)
                 C2batch = C2(:,tri_ind_2) 
@@ -162,27 +200,10 @@ module geograd_parallel
 
                 call minval_and_loc(distance_vec, 15, d, minloc_index)
                 call compare_and_swap_minimum(cur_min_dist, d, is_less_flag)
-                if (is_less_flag == 1) then
-                    ! If the new minimum, set the global dmin derivs and both indices
-                    dmin_index_1 = tri_ind_1
-                    dmin_index_2 = tri_ind_2
-                    ddminA1 = dA1(:,minloc_index)
-                    ddminB1 = dB1(:,minloc_index)
-                    ddminC1 = dC1(:,minloc_index)
-                    ddminA2 = dA2(:,minloc_index)
-                    ddminB2 = dB2(:,minloc_index)
-                    ddminC2 = dC2(:,minloc_index)
-                end if
 
                 dist_subtract_temp = mindist_in - distance_vec
                 base_exp_temp = exp(rho*dist_subtract_temp)
-                !deriv_exp_temp = dist_subtract_temp * base_exp_temp
-                ! accumulate exponentials
-                base_exp_accumulator = base_exp_accumulator + sum(base_exp_temp)
-                !deriv_exp_accumulator = deriv_exp_accumulator + sum(deriv_exp_temp)
-
-                ! deriv_exp_temp3 = spread(deriv_exp_temp, 1, 3)
-                
+                base_exp_accumulator_local = base_exp_accumulator_local + sum(base_exp_temp)
                 sumdA1 = 0.0
                 sumdB1 = 0.0
                 sumdC1 = 0.0
@@ -198,48 +219,48 @@ module geograd_parallel
                     sumdC2 = sumdC2 - dC2(:,count)*base_exp_temp(count)
                     
                 end do
-                ! dA1 = dA1 * deriv_exp_temp3
-                ! dB1 = dB1 * deriv_exp_temp3
-                ! dC1 = dC1 * deriv_exp_temp3
-                ! dA2 = dA2 * deriv_exp_temp3
-                ! dB2 = dB2 * deriv_exp_temp3
-                ! dC2 = dC2 * deriv_exp_temp3
-                dKSdA1(:, tri_ind_1) = dKSdA1(:, tri_ind_1) + sumdA1
-                dKSdB1(:, tri_ind_1) = dKSdB1(:, tri_ind_1) + sumdB1
-                dKSdC1(:, tri_ind_1) = dKSdC1(:, tri_ind_1) + sumdC1
-                dKSdA2(:, tri_ind_2) = dKSdA2(:, tri_ind_2) + sumdA2
-                dKSdB2(:, tri_ind_2) = dKSdB2(:, tri_ind_2) + sumdB2
-                dKSdC2(:, tri_ind_2) = dKSdC2(:, tri_ind_2) + sumdC2
+                dKSdA1_local(:, tri_ind_1_local) = dKSdA1_local(:, tri_ind_1_local) + sumdA1
+                dKSdB1_local(:, tri_ind_1_local) = dKSdB1_local(:, tri_ind_1_local) + sumdB1
+                dKSdC1_local(:, tri_ind_1_local) = dKSdC1_local(:, tri_ind_1_local) + sumdC1
+                dKSdA2_local(:, tri_ind_2) = dKSdA2_local(:, tri_ind_2) + sumdA2
+                dKSdB2_local(:, tri_ind_2) = dKSdB2_local(:, tri_ind_2) + sumdB2
+                dKSdC2_local(:, tri_ind_2) = dKSdC2_local(:, tri_ind_2) + sumdC2
             end do
         end do
-        ! include the dmin contribution to the accumulated derivatives
-        ! dKSdA1(:, dmin_index_1) = dKSdA1(:, dmin_index_1) + ddminA1 * base_exp_accumulator
-        ! dKSdB1(:, dmin_index_1) = dKSdB1(:, dmin_index_1) + ddminB1 * base_exp_accumulator
-        ! dKSdC1(:, dmin_index_1) = dKSdC1(:, dmin_index_1) + ddminC1 * base_exp_accumulator
-        ! dKSdA2(:, dmin_index_2) = dKSdA2(:, dmin_index_2) + ddminA2 * base_exp_accumulator
-        ! dKSdB2(:, dmin_index_2) = dKSdB2(:, dmin_index_2) + ddminB2 * base_exp_accumulator
-        ! dKSdC2(:, dmin_index_2) = dKSdC2(:, dmin_index_2) + ddminC2 * base_exp_accumulator
-        dKSdA1 = (1 / base_exp_accumulator) * dKSdA1
-        dKSdB1 = (1 / base_exp_accumulator) * dKSdB1
-        dKSdC1 = (1 / base_exp_accumulator) * dKSdC1
-        dKSdA2 = (1 / base_exp_accumulator) * dKSdA2
-        dKSdB2 = (1 / base_exp_accumulator) * dKSdB2
-        dKSdC2 = (1 / base_exp_accumulator) * dKSdC2
-        ! dKSdA1(:, dmin_index_1) = dKSdA1(:, dmin_index_1) - ddminA1
-        ! dKSdB1(:, dmin_index_1) = dKSdB1(:, dmin_index_1) - ddminB1
-        ! dKSdC1(:, dmin_index_1) = dKSdC1(:, dmin_index_1) - ddminC1
-        ! dKSdA2(:, dmin_index_2) = dKSdA2(:, dmin_index_2) - ddminA2
-        ! dKSdB2(:, dmin_index_2) = dKSdB2(:, dmin_index_2) - ddminB2
-        ! dKSdC2(:, dmin_index_2) = dKSdC2(:, dmin_index_2) - ddminC2
+        ! allreduce the base exp
+        call MPI_Allreduce(base_exp_accumulator_local, base_exp_accumulator, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
 
-        ! print *, dmin_index_1, dmin_index_2
+        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
+        dKSdB1_local = (1 / base_exp_accumulator) * dKSdB1_local
+        dKSdC1_local = (1 / base_exp_accumulator) * dKSdC1_local
+        dKSdA2_local = (1 / base_exp_accumulator) * dKSdA2_local
+        dKSdB2_local = (1 / base_exp_accumulator) * dKSdB2_local
+        dKSdC2_local = (1 / base_exp_accumulator) * dKSdC2_local
+
+        ! allgatherv the ABC1 derivatives
+        call MPI_Allgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE, dKSdA1, proc_split*n_dim, proc_disp*n_dim, &
+        MPI_DOUBLE, MPI_COMM_WORLD, error)
+
+        call MPI_Allgatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE, dKSdB1, proc_split*n_dim, proc_disp*n_dim, &
+        MPI_DOUBLE, MPI_COMM_WORLD, error)        
+
+        call MPI_Allgatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE, dKSdC1, proc_split*n_dim, proc_disp*n_dim, &
+        MPI_DOUBLE, MPI_COMM_WORLD, error)
+
+        ! allreduce the ABC2 derivatives
+
+        call MPI_Allreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
+        call MPI_Allreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
+        call MPI_Allreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
 
         KS = (1/rho) * log(base_exp_accumulator) - mindist_in
-        mindist = cur_min_dist
-        if (cur_min_dist /= mindist) then
+        ! allreduce the mindist
+        call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
+        if (mindist_in /= mindist) then
             print *, 'These should match'
         end if
         intersect_length = 0
+        ! TODO put intersection back in here
         return
 
     end subroutine compute_derivs
@@ -266,7 +287,6 @@ module geograd_parallel
         integer, parameter :: n_dim = 3
  
         real(kind=8), allocatable :: A1_local(:,:), B1_local(:,:), C1_local(:,:)
-        real(kind=8) :: sum_local
  
         call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
         call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
