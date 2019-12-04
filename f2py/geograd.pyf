@@ -150,6 +150,46 @@ python module geograd ! in
                 real(kind=8) intent(in) :: rho
             end subroutine compute
         end module geograd
+        module geograd_parallel ! in :geograd:src/geograd_parallel.F90
+            subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd_parallel.F90:geograd
+                use triangles_db
+                real(kind=8) intent(out) :: ks
+                real(kind=8) intent(out) :: intersect_length
+                real(kind=8) intent(out) :: mindist
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksda1
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksdb1
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksdc1
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksda2
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksdb2
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksdc2
+                real(kind=8) dimension(3,n1),intent(in) :: a1
+                real(kind=8) dimension(3,n1),intent(in),depend(n1) :: b1
+                real(kind=8) dimension(3,n1),intent(in),depend(n1) :: c1
+                real(kind=8) dimension(3,n2),intent(in) :: a2
+                real(kind=8) dimension(3,n2),intent(in),depend(n2) :: b2
+                real(kind=8) dimension(3,n2),intent(in),depend(n2) :: c2
+                integer, optional,intent(in),check(shape(a1,1)==n1),depend(a1) :: n1=shape(a1,1)
+                integer, optional,intent(in),check(shape(a2,1)==n2),depend(a2) :: n2=shape(a2,1)
+                real(kind=8) intent(in) :: mindist_in
+                real(kind=8) intent(in) :: rho
+            end subroutine compute_derivs
+            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd_parallel.F90:geograd
+                use triangles
+                real(kind=8) intent(out) :: ks
+                real(kind=8) intent(out) :: intersect_length
+                real(kind=8) intent(out) :: mindist
+                real(kind=8) dimension(3,n1),intent(in) :: a1
+                real(kind=8) dimension(3,n1),intent(in),depend(n1) :: b1
+                real(kind=8) dimension(3,n1),intent(in),depend(n1) :: c1
+                real(kind=8) dimension(3,n2),intent(in) :: a2
+                real(kind=8) dimension(3,n2),intent(in),depend(n2) :: b2
+                real(kind=8) dimension(3,n2),intent(in),depend(n2) :: c2
+                integer, optional,intent(in),check(shape(a1,1)==n1),depend(a1) :: n1=shape(a1,1)
+                integer, optional,intent(in),check(shape(a2,1)==n2),depend(a2) :: n2=shape(a2,1)
+                real(kind=8) intent(in) :: mindist_in
+                real(kind=8) intent(in) :: rho
+            end subroutine compute
+        end module geograd_parallel
     end interface 
 end python module geograd
 
