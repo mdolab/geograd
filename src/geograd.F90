@@ -207,9 +207,9 @@ module geograd
                 dKSdA1(:, tri_ind_1) = dKSdA1(:, tri_ind_1) + sumdA1
                 dKSdB1(:, tri_ind_1) = dKSdB1(:, tri_ind_1) + sumdB1
                 dKSdC1(:, tri_ind_1) = dKSdC1(:, tri_ind_1) + sumdC1
-                dKSdA2(:, tri_ind_2) = dKSdA2(:, tri_ind_1) + sumdA2
-                dKSdB2(:, tri_ind_2) = dKSdB2(:, tri_ind_1) + sumdB2
-                dKSdC2(:, tri_ind_2) = dKSdC2(:, tri_ind_1) + sumdC2
+                dKSdA2(:, tri_ind_2) = dKSdA2(:, tri_ind_2) + sumdA2
+                dKSdB2(:, tri_ind_2) = dKSdB2(:, tri_ind_2) + sumdB2
+                dKSdC2(:, tri_ind_2) = dKSdC2(:, tri_ind_2) + sumdC2
             end do
         end do
         ! include the dmin contribution to the accumulated derivatives
@@ -231,6 +231,8 @@ module geograd
         ! dKSdA2(:, dmin_index_2) = dKSdA2(:, dmin_index_2) - ddminA2
         ! dKSdB2(:, dmin_index_2) = dKSdB2(:, dmin_index_2) - ddminB2
         ! dKSdC2(:, dmin_index_2) = dKSdC2(:, dmin_index_2) - ddminC2
+
+        ! print *, dmin_index_1, dmin_index_2
 
         KS = (1/rho) * log(base_exp_accumulator) - mindist_in
         mindist = cur_min_dist
