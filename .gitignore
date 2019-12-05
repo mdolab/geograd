@@ -3,4 +3,3 @@
 *.o
 *.msg
 *_complex.F90
-*_db.f90
