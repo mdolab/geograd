@@ -1,6 +1,7 @@
-FCOMPILER=mpifort
+FCOMPILER=mpiifort
+FCOMPILER_ALL_FLAGS=$(FCOMPILER) -O3
 F2PY_INCLUDES=-I$(MPI_INSTALL_DIR)/include
-F2PY_ALL_FLAGS=--f90exec=$(FCOMPILER) $(F2PY_INCLUDES)
+F2PY_ALL_FLAGS=--f90exec=$(FCOMPILER) $(F2PY_INCLUDES) --opt='-O3'
 F2PY=python3 -m numpy.f2py 
 
 default: python3 python3_complex test
@@ -33,11 +34,11 @@ complex/geograd_complex.F90: src/geograd.F90
 	mv newFile complex/geograd_complex.F90
 
 complexify.mod: complex/complexify.F90
-	gfortran -c complex/complexify.F90
+	$(FCOMPILER_ALL_FLAGS) -c complex/complexify.F90
 	rm complexify.o
 
 triangles_db.mod: tapenade/triangles_db.f90
-	gfortran -c tapenade/triangles_db.f90
+	$(FCOMPILER_ALL_FLAGS) -c tapenade/triangles_db.f90
 	rm triangles_db.o
 
 tapenade/triangles_db.f90: src/triangles.F90
@@ -51,7 +52,6 @@ clean:
 	find . -name '*.msg~' -delete
 	find . -name '*.f90~' -delete
 	find . -name 'newFile' -delete
-	find . -name '*_db.f90' -delete 
 	find . -name '*_complex.F90' -delete
 	find . -name '*_complex.F90' -delete
 
