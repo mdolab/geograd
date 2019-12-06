@@ -281,16 +281,43 @@ module geograd_parallel
         real(kind=8), PARAMETER :: second_pass_flag = -1.0
         real(kind=8), dimension(3) :: A1batch, B1batch, C1batch, A2batch, B2batch, C2batch
 
-        integer :: error, id, n_procs
+        integer :: error, id, n_procs, outside_bb_flag
         integer, allocatable :: proc_split(:), proc_disp(:)
         integer :: n_tris_per_proc_base, n_tris_remaining, proc_idx, displ, slice_start, slice_end
         integer, parameter :: n_dim = 3
  
         real(kind=8), allocatable :: A1_local(:,:), B1_local(:,:), C1_local(:,:)
- 
+        real(kind=8), dimension(3) :: obj_mins_A, obj_mins_B, obj_mins_C, obj_maxs_A, obj_maxs_B, obj_maxs_C
+        real(kind=8), dimension(3) :: obj_mins, obj_maxs, this_tri_mins, this_tri_maxs
+        real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, &
+                        obj_bb_zmin, obj_bb_zmax, obj_dx, obj_dy, obj_dz, obj_max_d
+
+        real(kind=8) :: obj_tol
+        real(kind=8) :: start_time, end_time, elapsed_time, max_time, min_time
         call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
         call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
+        
+        obj_tol = 2.0
  
+        ! compute the maximum and minimum extent of the second mesh in the x direction
+        obj_mins_A = minval(A2, 2)
+        obj_mins_B = minval(B2, 2)
+        obj_mins_C = minval(C2, 2)
+        obj_maxs_A = maxval(A2, 2)
+        obj_maxs_B = maxval(B2, 2)
+        obj_maxs_C = maxval(C2, 2)
+        obj_mins = min(obj_mins_A, obj_mins_B, obj_mins_C)
+        obj_maxs = max(obj_maxs_A, obj_maxs_B, obj_maxs_C)
+        obj_dx = obj_maxs(1) - obj_mins(1)
+        obj_dy = obj_maxs(2) - obj_mins(2)
+        obj_dz = obj_maxs(3) - obj_mins(3)
+        obj_max_d = sqrt(obj_dx**2 + obj_dy**2 + obj_dz**2)
+        if (obj_max_d > obj_tol) then
+            print *,'Object bounding box tol is smaller than object max dimension'
+        end if
+
+        ! idea? fixed tol in all dirs veobj_tolus box extents
+
         allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
         ! compute the even processor split
         n_tris_per_proc_base = n1 / n_procs
@@ -313,60 +340,124 @@ module geograd_parallel
         A1_local = A1(:,slice_start:slice_end)
         B1_local = B1(:,slice_start:slice_end)
         C1_local = C1(:,slice_start:slice_end)
+        ! TODO precompute bounding box stuff here
 
+        ! sum the number of active entries on my processor
+        ! MPI_Reduce the number of total active entries
+        ! MPI_Scan the active/inactive array
+        ! Compute the new active triangle processor split
+        ! Loop through the scan to get the global indices where the split needs to happen
+        ! Result is a new proc_split(id), proc_disp(id) (will be very unbalanced in size, this is OK)
+        
         intersect_length_local = 0.0_8
         cur_min_dist = 9.9e10
+        mindist = 9.9e10
         ks_accumulator_local = 0.0_8
+        CALL CPU_TIME(start_time)
+        do while (mindist > 9e10)
+            ! if the bounding box margin is too small, the minimum distance test can fail to find a point.
+            ! if it fails, expand the bounding box margin
 
-        do tri_ind_1_local = 1, proc_split(id)
-            do tri_ind_2 = 1, n2
-                ! do 9 line-line comparison tests
+            ! compute the bounds of the box (add the width in both directions)
+            obj_bb_xmin = obj_mins(1) - obj_tol
+            obj_bb_xmax = obj_maxs(1) + obj_tol 
+            obj_bb_ymin = obj_mins(2) - obj_tol
+            obj_bb_ymax = obj_maxs(2) + obj_tol   
+            obj_bb_zmin = obj_mins(3) - obj_tol
+            obj_bb_zmax = obj_maxs(3) + obj_tol
+            do tri_ind_1_local = 1, proc_split(id)
+                ! TODO implement this
+                ! check this triangle is getting computed
+                ! if no, compute a KS contribution equal to the width of the component times the number of facets
+                ! zero out the gradient entries
+                ! if yes, do the loop below
                 A1batch = A1_local(:,tri_ind_1_local)
                 B1batch = B1_local(:,tri_ind_1_local)
                 C1batch = C1_local(:,tri_ind_1_local)
-                A2batch = A2(:,tri_ind_2)
-                B2batch = B2(:,tri_ind_2)
-                C2batch = C2(:,tri_ind_2)             
-                call line_line(A1batch, B1batch, A2batch, B2batch, distance_vec(1))
-                call line_line(A1batch, B1batch, B2batch, C2batch, distance_vec(2))
-                call line_line(A1batch, B1batch, A2batch, C2batch, distance_vec(3))
-                call line_line(B1batch, C1batch, A2batch, B2batch, distance_vec(4))
-                call line_line(B1batch, C1batch, B2batch, C2batch, distance_vec(5))
-                call line_line(B1batch, C1batch, A2batch, C2batch, distance_vec(6))
-                call line_line(A1batch, C1batch, A2batch, B2batch, distance_vec(7))
-                call line_line(A1batch, C1batch, B2batch, C2batch, distance_vec(8))
-                call line_line(A1batch, C1batch, A2batch, C2batch, distance_vec(9))
-
-                ! do 6 point-triangle comparison tests
-                call point_tri(A1batch, B1batch, C1batch, A2batch, distance_vec(10))
-                call point_tri(A1batch, B1batch, C1batch, B2batch, distance_vec(11))
-                call point_tri(A1batch, B1batch, C1batch, C2batch, distance_vec(12))
-                call point_tri(A2batch, B2batch, C2batch, A1batch, distance_vec(13))
-                call point_tri(A2batch, B2batch, C2batch, B1batch, distance_vec(14))
-                call point_tri(A2batch, B2batch, C2batch, C1batch, distance_vec(15))
-
-                call minval_and_loc(distance_vec, 15, d, minloc_index)
-                call compare_and_swap_minimum(cur_min_dist, d)
+                ! do a cheap bounding box check and potentially skip the n2 loop
+                ! find the extents of A1
+                this_tri_mins = min(A1batch, B1batch, C1batch)
+                this_tri_maxs = max(A1batch, B1batch, C1batch)
                 
-                if (mindist_in /= second_pass_flag) then
-                ! compute KS function on second pass only
-                    ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
-                ! compute the intersection on second pass only
-                    call intersect(A1batch, B1batch, C1batch, &
-                    A2batch, B2batch, C2batch, intersect_temp)
-                    intersect_length_local = intersect_temp + intersect_length_local
+                ! check spanwise direction first
+                outside_bb_flag = -1
+                if (this_tri_mins(3) > obj_bb_zmax) then
+                    outside_bb_flag = 1
+                else if (this_tri_maxs(3) < obj_bb_zmin) then
+                    outside_bb_flag = 1
+                else if (this_tri_mins(1) > obj_bb_xmax) then
+                    outside_bb_flag = 1
+                else if (this_tri_maxs(1) < obj_bb_xmin) then
+                    outside_bb_flag = 1
+                else if (this_tri_mins(2) > obj_bb_ymax) then 
+                    outside_bb_flag = 1
+                else if (this_tri_maxs(2) < obj_bb_ymin) then
+                    outside_bb_flag = 1
+                else
+                    outside_bb_flag = -1
+                end if
+                
+                if (outside_bb_flag == 1) then
+                    ! do not bother computing the actual pairwise tests. Add a conservative estimate
+                    ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)*15
+                else
+                    do tri_ind_2 = 1, n2
+                        ! do 9 line-line comparison tests
+
+                        A2batch = A2(:,tri_ind_2)
+                        B2batch = B2(:,tri_ind_2)
+                        C2batch = C2(:,tri_ind_2)             
+                        call line_line(A1batch, B1batch, A2batch, B2batch, distance_vec(1))
+                        call line_line(A1batch, B1batch, B2batch, C2batch, distance_vec(2))
+                        call line_line(A1batch, B1batch, A2batch, C2batch, distance_vec(3))
+                        call line_line(B1batch, C1batch, A2batch, B2batch, distance_vec(4))
+                        call line_line(B1batch, C1batch, B2batch, C2batch, distance_vec(5))
+                        call line_line(B1batch, C1batch, A2batch, C2batch, distance_vec(6))
+                        call line_line(A1batch, C1batch, A2batch, B2batch, distance_vec(7))
+                        call line_line(A1batch, C1batch, B2batch, C2batch, distance_vec(8))
+                        call line_line(A1batch, C1batch, A2batch, C2batch, distance_vec(9))
+
+                        ! do 6 point-triangle comparison tests
+                        call point_tri(A1batch, B1batch, C1batch, A2batch, distance_vec(10))
+                        call point_tri(A1batch, B1batch, C1batch, B2batch, distance_vec(11))
+                        call point_tri(A1batch, B1batch, C1batch, C2batch, distance_vec(12))
+                        call point_tri(A2batch, B2batch, C2batch, A1batch, distance_vec(13))
+                        call point_tri(A2batch, B2batch, C2batch, B1batch, distance_vec(14))
+                        call point_tri(A2batch, B2batch, C2batch, C1batch, distance_vec(15))
+
+                        call minval_and_loc(distance_vec, 15, d, minloc_index)
+                        call compare_and_swap_minimum(cur_min_dist, d)
+                        
+                        if (mindist_in /= second_pass_flag) then
+                        ! compute KS function on second pass only
+                            ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
+                        ! compute the intersection on second pass only
+                            call intersect(A1batch, B1batch, C1batch, &
+                            A2batch, B2batch, C2batch, intersect_temp)
+                            intersect_length_local = intersect_temp + intersect_length_local
+                        end if
+                    end do
                 end if
             end do
+            ! do the reductions
+            CALL CPU_TIME(end_time)
+            elapsed_time = end_time - start_time
+            ! compute the imbalance
+            call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
+            if (id == 0) then
+                print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
+            end if
+            call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
+            if (mindist_in /= second_pass_flag) then
+                KS = (1 / rho) * log(ks_accumulator) - mindist_in
+            else
+                KS = zero
+            end if
+            obj_tol = obj_tol * 2.0
         end do
-        ! do the reductions
-        call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
-        call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
-        call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
-        if (mindist_in /= second_pass_flag) then
-            KS = (1 / rho) * log(ks_accumulator) - mindist_in
-        else
-            KS = zero
-        end if
     end subroutine compute
 
 end module geograd_parallel
