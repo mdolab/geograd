@@ -2,6 +2,58 @@ module geograd_parallel
     implicit none
 
     contains
+    subroutine even_proc_split(proc_split, proc_disp, n_tris, n_procs)
+        implicit none
+        integer, intent(in) :: n_tris, n_procs
+        integer, intent(out), dimension(0:(n_procs-1)) :: proc_split, proc_disp
+        integer :: n_tris_per_proc_base, n_tris_remaining, displ, proc_idx
+        n_tris_per_proc_base = n_tris / n_procs
+        n_tris_remaining = mod(n_tris, n_procs)
+        displ = 0
+        do proc_idx = 0, n_procs-1
+            if (proc_idx < n_tris_remaining) then
+                proc_split(proc_idx) = (n_tris_per_proc_base + 1)
+            else
+                proc_split(proc_idx) = (n_tris_per_proc_base)
+            end if
+            proc_disp(proc_idx) = displ
+            displ = displ + proc_split(proc_idx)
+        end do
+    end subroutine even_proc_split
+
+    subroutine load_balance_split(proc_split, proc_disp, bb_test_result, n_tris, n_procs)
+        implicit none
+        integer, intent(in) :: n_tris, n_procs
+        integer, intent(in), dimension(n_tris) :: bb_test_result
+        integer, intent(out), dimension(0:(n_procs-1)) :: proc_split, proc_disp
+        integer :: proc_idx, tri_idx, cumsum, bb_active_count, start_val_this_proc
+        integer, dimension(0:(n_procs-1)) :: active_split, active_disp
+
+        bb_active_count = sum(bb_test_result) ! total number of triangles that need expensive computation
+        if (bb_active_count < n_procs) then
+            ! degenerate case where there is less than one triangle to compute per processor
+            return
+        end if
+
+        call even_proc_split(active_split, active_disp, bb_active_count, n_procs) ! split the active triangles evenly across procs
+
+        tri_idx = 1
+        cumsum = bb_test_result(tri_idx) !keep a running total
+        proc_disp(0) = 0 ! first processor always starts at first entry in the array
+
+        do proc_idx = 1, n_procs-1
+            start_val_this_proc = active_disp(proc_idx) + 1
+            do while (cumsum /= start_val_this_proc)
+                
+                tri_idx = tri_idx + 1
+                cumsum = cumsum + bb_test_result(tri_idx)
+            end do
+            proc_disp(proc_idx) = tri_idx - 1
+            proc_split(proc_idx - 1) = proc_disp(proc_idx) - proc_disp(proc_idx - 1)
+        end do
+        proc_split(n_procs-1) = n_tris - proc_disp(n_procs-1)
+    end subroutine load_balance_split
+
     subroutine compare_and_swap_minimum(current_min, value, flag)
         implicit none
         real(kind=8), intent(inout) :: current_min
@@ -62,7 +114,7 @@ module geograd_parallel
         
         integer :: error, id, n_procs
         integer, allocatable :: proc_split(:), proc_disp(:)
-        integer :: n_tris_per_proc_base, n_tris_remaining, proc_idx, displ, slice_start, slice_end
+        integer :: displ, slice_start, slice_end
         integer, parameter :: n_dim = 3
  
         real(kind=8), allocatable :: A1_local(:,:), B1_local(:,:), C1_local(:,:)
@@ -72,18 +124,7 @@ module geograd_parallel
  
         allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
         ! compute the even processor split
-        n_tris_per_proc_base = n1 / n_procs
-        n_tris_remaining = mod(n1, n_procs)
-        displ = 0
-        do proc_idx = 0, n_procs-1
-            if (proc_idx < n_tris_remaining) then
-                proc_split(proc_idx) = (n_tris_per_proc_base + 1)
-            else
-                proc_split(proc_idx) = (n_tris_per_proc_base)
-            end if
-            proc_disp(proc_idx) = displ
-            displ = displ + proc_split(proc_idx)
-        end do
+        call even_proc_split(proc_split, proc_disp, n1, n_procs)
         ! get array slices
         allocate(A1_local(3, proc_split(id)), B1_local(3, proc_split(id)), C1_local(3, proc_split(id)))
         slice_start=proc_disp(id) + 1
@@ -257,7 +298,7 @@ module geograd_parallel
         ! allreduce the mindist
         call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
         if (mindist_in /= mindist) then
-            print *, 'These should match'
+            print *, 'These should match: in: ',mindist_in, 'calc: ', mindist
         end if
         intersect_length = 0
         ! TODO put intersection back in here
@@ -281,12 +322,11 @@ module geograd_parallel
         real(kind=8), PARAMETER :: second_pass_flag = -1.0
         real(kind=8), dimension(3) :: A1batch, B1batch, C1batch, A2batch, B2batch, C2batch
 
-        integer :: error, id, n_procs, outside_bb_flag
-        integer, allocatable :: proc_split(:), proc_disp(:)
-        integer :: n_tris_per_proc_base, n_tris_remaining, proc_idx, displ, slice_start, slice_end
+        integer :: error, id, n_procs, outside_bb_flag, bb_active, expensive_test_count
+        integer, allocatable :: proc_split(:), proc_disp(:), bb_flag_vec_local(:), bb_flag_vec(:), &
+                                active_split(:), active_disp(:)
         integer, parameter :: n_dim = 3
  
-        real(kind=8), allocatable :: A1_local(:,:), B1_local(:,:), C1_local(:,:)
         real(kind=8), dimension(3) :: obj_mins_A, obj_mins_B, obj_mins_C, obj_maxs_A, obj_maxs_B, obj_maxs_C
         real(kind=8), dimension(3) :: obj_mins, obj_maxs, this_tri_mins, this_tri_maxs
         real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, &
@@ -296,8 +336,11 @@ module geograd_parallel
         real(kind=8) :: start_time, end_time, elapsed_time, max_time, min_time
         call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
         call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
-        
-        obj_tol = 2.0
+        allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
+        allocate(active_split(0:(n_procs-1)), active_disp(0:(n_procs-1)))
+
+        obj_tol = 1.0
+        expensive_test_count = 0
  
         ! compute the maximum and minimum extent of the second mesh in the x direction
         obj_mins_A = minval(A2, 2)
@@ -312,51 +355,29 @@ module geograd_parallel
         obj_dy = obj_maxs(2) - obj_mins(2)
         obj_dz = obj_maxs(3) - obj_mins(3)
         obj_max_d = sqrt(obj_dx**2 + obj_dy**2 + obj_dz**2)
-        if (obj_max_d > obj_tol) then
-            print *,'Object bounding box tol is smaller than object max dimension'
-        end if
+        obj_tol = max(obj_dx, obj_dy, obj_dz)
+        ! if (obj_max_d > obj_tol) then
+        !     print *,'Object bounding box tol is smaller than object max dimension'
+        ! end if
 
-        ! idea? fixed tol in all dirs veobj_tolus box extents
+        ! idea? fixed tol in all dirs vs box extents
 
-        allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
-        ! compute the even processor split
-        n_tris_per_proc_base = n1 / n_procs
-        n_tris_remaining = mod(n1, n_procs)
-        displ = 0
-        do proc_idx = 0, n_procs-1
-            if (proc_idx < n_tris_remaining) then
-                proc_split(proc_idx) = (n_tris_per_proc_base + 1)
-            else
-                proc_split(proc_idx) = (n_tris_per_proc_base)
-            end if
-            proc_disp(proc_idx) = displ
-            displ = displ + proc_split(proc_idx)
-        end do
         ! get array slices
-        allocate(A1_local(3, proc_split(id)), B1_local(3, proc_split(id)), C1_local(3, proc_split(id)))
-        slice_start=proc_disp(id) + 1
-        slice_end=proc_split(id) + slice_start - 1
-
-        A1_local = A1(:,slice_start:slice_end)
-        B1_local = B1(:,slice_start:slice_end)
-        C1_local = C1(:,slice_start:slice_end)
-        ! TODO precompute bounding box stuff here
-
-        ! sum the number of active entries on my processor
-        ! MPI_Reduce the number of total active entries
-        ! MPI_Scan the active/inactive array
-        ! Compute the new active triangle processor split
-        ! Loop through the scan to get the global indices where the split needs to happen
-        ! Result is a new proc_split(id), proc_disp(id) (will be very unbalanced in size, this is OK)
-        
-        intersect_length_local = 0.0_8
-        cur_min_dist = 9.9e10
         mindist = 9.9e10
-        ks_accumulator_local = 0.0_8
-        CALL CPU_TIME(start_time)
+
+        call even_proc_split(proc_split, proc_disp, n1, n_procs)
+        allocate(bb_flag_vec_local(proc_split(id)), bb_flag_vec(n1))
+
         do while (mindist > 9e10)
             ! if the bounding box margin is too small, the minimum distance test can fail to find a point.
             ! if it fails, expand the bounding box margin
+
+            ! split all the triangles evenly across the processors to compute the bounding box tests
+            call even_proc_split(proc_split, proc_disp, n1, n_procs)
+
+            cur_min_dist = 9.9e10
+            intersect_length_local = 0.0_8
+            ks_accumulator_local = 0.0_8
 
             ! compute the bounds of the box (add the width in both directions)
             obj_bb_xmin = obj_mins(1) - obj_tol
@@ -365,15 +386,14 @@ module geograd_parallel
             obj_bb_ymax = obj_maxs(2) + obj_tol   
             obj_bb_zmin = obj_mins(3) - obj_tol
             obj_bb_zmax = obj_maxs(3) + obj_tol
+
+            bb_flag_vec_local = 1
             do tri_ind_1_local = 1, proc_split(id)
-                ! TODO implement this
-                ! check this triangle is getting computed
-                ! if no, compute a KS contribution equal to the width of the component times the number of facets
-                ! zero out the gradient entries
-                ! if yes, do the loop below
-                A1batch = A1_local(:,tri_ind_1_local)
-                B1batch = B1_local(:,tri_ind_1_local)
-                C1batch = C1_local(:,tri_ind_1_local)
+                ! compute the bounding box test here for the load balance
+
+                A1batch = A1(:,tri_ind_1_local+proc_disp(id))
+                B1batch = B1(:,tri_ind_1_local+proc_disp(id))
+                C1batch = C1(:,tri_ind_1_local+proc_disp(id))
                 ! do a cheap bounding box check and potentially skip the n2 loop
                 ! find the extents of A1
                 this_tri_mins = min(A1batch, B1batch, C1batch)
@@ -382,25 +402,40 @@ module geograd_parallel
                 ! check spanwise direction first
                 outside_bb_flag = -1
                 if (this_tri_mins(3) > obj_bb_zmax) then
-                    outside_bb_flag = 1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 else if (this_tri_maxs(3) < obj_bb_zmin) then
-                    outside_bb_flag = 1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 else if (this_tri_mins(1) > obj_bb_xmax) then
-                    outside_bb_flag = 1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 else if (this_tri_maxs(1) < obj_bb_xmin) then
-                    outside_bb_flag = 1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 else if (this_tri_mins(2) > obj_bb_ymax) then 
-                    outside_bb_flag = 1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 else if (this_tri_maxs(2) < obj_bb_ymin) then
-                    outside_bb_flag = 1
-                else
-                    outside_bb_flag = -1
+                    bb_flag_vec_local(tri_ind_1_local) = 0
                 end if
-                
-                if (outside_bb_flag == 1) then
+            end do
+            
+            call MPI_Allgatherv(bb_flag_vec_local, proc_split(id), MPI_INTEGER, bb_flag_vec, proc_split, proc_disp, &
+                                MPI_INTEGER, MPI_COMM_WORLD, error)
+            
+            call load_balance_split(proc_split, proc_disp, bb_flag_vec, n1, n_procs)
+            CALL CPU_TIME(start_time)
+            do tri_ind_1_local = 1, proc_split(id)
+                ! TODO implement this
+                ! check this triangle is getting computed
+                ! if no, compute a KS contribution equal to the width of the component times the number of facets
+                ! zero out the gradient entries
+                ! if yes, do the loop below
+                A1batch = A1(:,tri_ind_1_local+proc_disp(id))
+                B1batch = B1(:,tri_ind_1_local+proc_disp(id))
+                C1batch = C1(:,tri_ind_1_local+proc_disp(id))
+               
+                if (bb_flag_vec(tri_ind_1_local+proc_disp(id)) == 0) then
                     ! do not bother computing the actual pairwise tests. Add a conservative estimate
                     ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)*15
                 else
+                    expensive_test_count = expensive_test_count + 1
                     do tri_ind_2 = 1, n2
                         ! do 9 line-line comparison tests
 
@@ -438,16 +473,17 @@ module geograd_parallel
                         end if
                     end do
                 end if
+                CALL CPU_TIME(end_time)
+                elapsed_time = end_time - start_time
             end do
             ! do the reductions
-            CALL CPU_TIME(end_time)
-            elapsed_time = end_time - start_time
+            
             ! compute the imbalance
             call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD, error)
             call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
-            if (id == 0) then
-                print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
-            end if
+            ! if (id == 0) then
+            !     print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
+            ! end if
             call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
             call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, error)
             call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
