@@ -19,8 +19,8 @@ mpitest: src/mpitest.F90 f2py/mpitest.pyf
 	$(F2PY) $(F2PY_ALL_FLAGS) -c f2py/mpitest.pyf src/mpitest.F90
 	mpirun -np 4 python3 test_mpi.py
 
-python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/geograd_complex.pyf complexify.mod
-	$(F2PY) $(F2PY_ALL_FLAGS) -DUSE_COMPLEX -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90
+python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/geograd_complex.pyf complexify.mod complex/geograd_parallel_complex.F90
+	$(F2PY) $(F2PY_ALL_FLAGS) -DUSE_COMPLEX -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90 complex/geograd_parallel_complex.F90
 
 python3: tapenade/triangles_db.f90 f2py/geograd.pyf src/triangles.F90 src/geograd.F90 triangles_db.mod src/geograd_parallel.F90
 	$(F2PY) $(F2PY_ALL_FLAGS) -c f2py/geograd.pyf tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 tapenade/adBuffer.f tapenade/adStack.c
@@ -32,6 +32,10 @@ complex/triangles_complex.F90: src/triangles.F90
 complex/geograd_complex.F90: src/geograd.F90
 	python complex/complexify.py src/geograd.F90
 	mv newFile complex/geograd_complex.F90
+
+complex/geograd_parallel_complex.F90: src/geograd_parallel.F90
+	python complex/complexify.py src/geograd_parallel.F90
+	mv newFile complex/geograd_parallel_complex.F90
 
 complexify.mod: complex/complexify.F90
 	$(FCOMPILER_ALL_FLAGS) -c complex/complexify.F90

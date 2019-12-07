@@ -151,7 +151,7 @@ python module geograd ! in
             end subroutine compute
         end module geograd
         module geograd_parallel ! in :geograd:src/geograd_parallel.F90
-            subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles_db
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
@@ -172,8 +172,9 @@ python module geograd ! in
                 integer, optional,intent(in),check(shape(a2,1)==n2),depend(a2) :: n2=shape(a2,1)
                 real(kind=8) intent(in) :: mindist_in
                 real(kind=8) intent(in) :: rho
+                real(kind=8) intent(in) :: obj_tol_in
             end subroutine compute_derivs
-            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
@@ -188,6 +189,7 @@ python module geograd ! in
                 integer, optional,intent(in),check(shape(a2,1)==n2),depend(a2) :: n2=shape(a2,1)
                 real(kind=8) intent(in) :: mindist_in
                 real(kind=8) intent(in) :: rho
+                real(kind=8) intent(in) :: obj_tol_in
             end subroutine compute
         end module geograd_parallel
     end interface 

@@ -1,7 +1,7 @@
 import numpy as np 
 import unittest
 from geograd import geograd_parallel as g
-from geograd_complex import geograd as gcs
+from geograd_complex import geograd_parallel as gcs
 from stl import mesh
 import os
 h = 1e-15
@@ -21,8 +21,9 @@ def custom_assert(self, truth, approx, base_tol=1e-7):
         assert_almost_equal(truth, approx, decimal=7)
 
 def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, indices_2=None, method='cs'):
-        result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho)
-        result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho)
+        maxdim = np.max(np.maximum(np.maximum(A2.max(axis=1), B2.max(axis=1)), C2.max(axis=1)) - np.minimum(np.minimum(A2.min(axis=1), B2.min(axis=1)), C2.min(axis=1)))
+        result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho, maxdim)
+        result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho, maxdim)
         ks_base = result2[0]
         A1_grad = result2[3]
         B1_grad = result2[4]
@@ -84,9 +85,9 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                         C1_alt[k,jind] = C1_alt[k,jind] + cseps*1.0j
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C1_grad[k,jind]
-
-                    resultcs = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho)
-                    resultcs2 = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultcs[2], rho)
+                    
+                    resultcs = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim)
+                    resultcs2 = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultcs[2], rho, maxdim)
                     ks_cs = resultcs2[0]
                     gradcs_ks = np.imag((ks_cs - ks_base)) / cseps
 
@@ -118,8 +119,8 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C1_grad[k,jind]
 
-                    resultfd = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho)
-                    resultfd2 = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultfd[2], rho)
+                    resultfd = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim)
+                    resultfd2 = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultfd[2], rho, maxdim)
                     ks_fd = resultfd2[0]
                     gradfd_ks = (ks_fd - ks_base) / fdeps
 
@@ -170,8 +171,8 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C2_grad[k,jind]
 
-                    resultcs = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho)
-                    resultcs2 = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultcs[2], rho)
+                    resultcs = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim)
+                    resultcs2 = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultcs[2], rho, maxdim)
                     ks_cs = resultcs2[0]
                     gradcs_ks = np.imag((ks_cs - ks_base)) / cseps
 
@@ -203,8 +204,8 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C2_grad[k,jind]
 
-                    resultfd = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho)
-                    resultfd2 = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultfd[2], rho)
+                    resultfd = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim)
+                    resultfd2 = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultfd[2], rho, maxdim)
                     ks_fd = resultfd2[0]
                     gradfd_ks = (ks_fd - ks_base) / fdeps
 
@@ -224,28 +225,28 @@ class TestIntersectTrivial(unittest.TestCase):
         a2 = np.repeat(np.array([-1.0, 0.5, -0.1]),2).reshape(3,2)
         b2 = np.repeat(np.array([1.0, 0.5, -0.1]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 5.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
         self.assertAlmostEqual(result[1], 0.5*4, 10)
 
     def test_intersect_2_in_1(self):
         a2 = np.repeat(np.array([0.75, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.25, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.25, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
         self.assertAlmostEqual(result[1], 1/3*4, 10)
 
     def test_intersect_right_edge(self):
         a2 = np.repeat(np.array([1.0, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([0.0, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
     def test_intersect_left_edge(self):
         a2 = np.repeat(np.array([0.5, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.5, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.0, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
 class MinDistSTLTestCase1(unittest.TestCase):
@@ -267,12 +268,14 @@ class MinDistSTLTestCase1(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
+        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
+
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
         self.assertAlmostEqual(2.33166, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
         self.assertAlmostEqual(-2.3137489765687533, result2[0], 8)
     
     def test_derivs(self):
@@ -300,12 +303,13 @@ class MinDistSTLTestCase2(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
+        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
         self.assertAlmostEqual(0.0178387, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
         self.assertAlmostEqual(-0.013197699692565058, result2[0], 8)
 
     def test_derivs(self):
@@ -330,13 +334,15 @@ class MinDistSTLTestCase3(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
+        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
         self.assertAlmostEqual(0.02212236, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
         self.assertAlmostEqual(-0.015186799790516424, result2[0], 8)
+        print(result2)
     
     def test_derivs(self):
         test_derivatives_CS(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [104, 87], [52, 2])

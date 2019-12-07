@@ -41,7 +41,7 @@ class MinDistSTLTestCase1(unittest.TestCase):
     def test_values(self):
         start=time.time()
         for i in range(100):
-            result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10)
+            result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, 2.0)
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 100 runs of analysis only: '+str(end-start))
@@ -52,7 +52,7 @@ class MinDistSTLTestCase1(unittest.TestCase):
 
         start = time.time()
         for i in range(100):
-            result2 = g.compute_derivs(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
+            result2 = g.compute_derivs(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, 2.0)
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 100 runs with derivatives: '+str(end-start))
@@ -80,24 +80,24 @@ class BWBTestCase(unittest.TestCase):
 
     def test_values(self):
         transl_vec = np.linspace(0,28.0, 50)
-        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10)
+        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, 2.0)
         self.assertAlmostEqual(0.1698771104979689, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
 
         start=time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
-            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10)
-            if MPI.COMM_WORLD.rank == 0:
-                print('Dist: '+str(result[2])+' Int: '+str(result[1])+' KS: '+str(result[0]))
+            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, 2.0)
+            # if MPI.COMM_WORLD.rank == 0:
+            #     print('Dist: '+str(result[2])+' Int: '+str(result[1])+' KS: '+str(result[0]))
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs of analysis only: '+str(end-start))
 
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
-            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10)
-            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, result[2], 10)
+            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, 2.0)
+            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, result[2], 10, 2.0)
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs with derivatives: '+str(end-start))

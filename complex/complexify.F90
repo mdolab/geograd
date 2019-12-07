@@ -74,6 +74,7 @@ module complexify
        module procedure max_rc
        module procedure max_ccc     ! added because of DFLUX.f
        module procedure max_cccc     ! added because of DFLUX.f
+       module procedure max_ccc_3
     end interface
   
   ! MIN (limited to 2-4 complex args, 2 mixed args)
@@ -83,6 +84,7 @@ module complexify
        module procedure min_rc
        module procedure min_ccc
        module procedure min_cccc
+       module procedure min_ccc_3
     end interface
   
   ! MINVAL
@@ -495,6 +497,38 @@ module complexify
       endif
       return
     end function min_ccc
+    function min_ccc_3(val1, val2, val3)
+    complex*16, dimension(3) :: min_ccc_3
+      complex*16, dimension(3), intent(in) :: val1, val2, val3
+      integer :: count
+      do count = 1,3
+        if (real(val1(count)) < real(val2(count))) then
+          min_ccc_3(count) = val1(count)
+        else
+          min_ccc_3(count) = val2(count)
+        endif
+        if (real(val3(count)) < real(min_ccc_3(count))) then
+          min_ccc_3(count) = val3(count)
+        endif
+      end do
+      return
+    end function min_ccc_3
+    function max_ccc_3(val1, val2, val3)
+      complex*16, dimension(3) :: max_ccc_3
+        complex*16, dimension(3), intent(in) :: val1, val2, val3
+        integer :: count
+        do count = 1,3
+          if (real(val1(count)) > real(val2(count))) then
+            max_ccc_3(count) = val1(count)
+          else
+            max_ccc_3(count) = val2(count)
+          endif
+          if (real(val3(count)) > real(max_ccc_3(count))) then
+            max_ccc_3(count) = val3(count)
+          endif
+        end do
+        return
+      end function max_ccc_3
     function min_cccc(val1, val2, val3, val4)
       complex*16, intent(in) :: val1, val2, val3, val4
       complex*16 min_cccc
@@ -521,7 +555,7 @@ module complexify
       complex*16, intent(in) :: z(:)
       minval_c = cmplx(minval(real(z)), aimag(z(minloc(real(z),dim=1))))
     end function minval_c
-  
+
   ! MAXVAL: maximum of an array
   ! Assumes a 1D array!
     complex*16 function maxval_c(z)
