@@ -133,11 +133,11 @@ subroutine compute_derivs(KS, intersect_length, mindist, dKSdA1, dKSdB1, dKSdC1,
    real(kind=8), intent(out), dimension(3,n2) :: dKSdA2, dKSdB2, dKSdC2
    integer :: tri_ind_1_local, tri_ind_2, minloc_index, inner_count ! loop indices
    real(kind=8) :: d, cur_min_dist, intersect_temp, intersect_length_local, &
-                   garbage, base_exp_accumulator, base_exp_accumulator_local, obj_tol
+                   garbage, base_exp_accumulator, base_exp_accumulator_local, obj_tol, base_exp_temp
    real(kind=8), dimension(3) :: sumdA1, sumdB1, sumdC1, sumdA2, sumdB2, sumdC2
    real(kind=8), dimension(15) :: distance_vec ! holds the pairwise distances from the batch
-   real(kind=8), dimension(3,15) :: dA1, dB1, dC1, dA2, dB2, dC2 ! holds the reverse mode derivatives for the batch
-   real(kind=8), dimension(15) :: dist_subtract_temp, base_exp_temp ! these hold some intermediate quantities that need to get accumulated
+   real(kind=8), dimension(3) :: dA1, dB1, dC1, dA2, dB2, dC2 ! holds the reverse mode derivatives for the batch
+   real(kind=8), dimension(15) :: dist_subtract_temp ! these hold some intermediate quantities that need to get accumulated
    real(kind=8) :: rev_seed
    real(kind=8), dimension(3) :: A1batch, B1batch, C1batch, A2batch, B2batch, C2batch
    real(kind=8), allocatable :: dKSdA1_local(:,:), dKSdB1_local(:,:), dKSdC1_local(:,:)
@@ -251,109 +251,91 @@ subroutine compute_derivs(KS, intersect_length, mindist, dKSdA1, dKSdB1, dKSdC1,
                    dA2 = 0.0
                    dB2 = 0.0
                    dC2 = 0.0
-                   rev_seed = 1.0
                    call line_line(A1batch, B1batch, A2batch, B2batch, distance_vec(1))
-                   call line_line_b(A1batch, dA1(:,1), B1batch, dB1(:,1), &
-                                   A2batch, dA2(:,1), B2batch, dB2(:,1), garbage, rev_seed)
-                   rev_seed = 1.0
                    call line_line(A1batch, B1batch, B2batch, C2batch, distance_vec(2))
-                   call line_line_b(A1batch, dA1(:,2), B1batch, dB1(:,2), &
-                                   B2batch, dB2(:,2), C2batch, dC2(:,2), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(A1batch, B1batch, A2batch, C2batch, distance_vec(3))
-                   call line_line_b(A1batch, dA1(:,3), B1batch, dB1(:,3), &
-                                   A2batch, dA2(:,3), C2batch, dC2(:,3), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(B1batch, C1batch, A2batch, B2batch, distance_vec(4))
-                   call line_line_b(B1batch, dB1(:,4), C1batch, dC1(:,4), &
-                                   A2batch, dA2(:,4), B2batch, dB2(:,4), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(B1batch, C1batch, B2batch, C2batch, distance_vec(5))
-                   call line_line_b(B1batch, dB1(:,5), C1batch, dC1(:,5), &
-                                   B2batch, dB2(:,5), C2batch, dC2(:,5), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(B1batch, C1batch, A2batch, C2batch, distance_vec(6))
-                   call line_line_b(B1batch, dB1(:,6), C1batch, dC1(:,6), &
-                                   A2batch, dA2(:,6), C2batch, dC2(:,6), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(A1batch, C1batch, A2batch, B2batch, distance_vec(7))
-                   call line_line_b(A1batch, dA1(:,7), C1batch, dC1(:,7), &
-                                   A2batch, dA2(:,7), B2batch, dB2(:,7), garbage, rev_seed)
-
-
-                   rev_seed = 1.0
                    call line_line(A1batch, C1batch, B2batch, C2batch, distance_vec(8))
-                   call line_line_b(A1batch, dA1(:,8), C1batch, dC1(:,8), &
-                                   B2batch, dB2(:,8), C2batch, dC2(:,8), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call line_line(A1batch, C1batch, A2batch, C2batch, distance_vec(9))
-                   call line_line_b(A1batch, dA1(:,9), C1batch, dC1(:,9), &
-                                   A2batch, dA2(:,9), C2batch, dC2(:,9), garbage, rev_seed)
-
-                   ! do 6 point-triangle comparison tests
-                   rev_seed = 1.0
                    call point_tri(A1batch, B1batch, C1batch, A2batch, distance_vec(10))
-                   call point_tri_b(A1batch, dA1(:,10), B1batch, dB1(:,10), C1batch, dC1(:,10), &
-                                   A2batch, dA2(:,10), garbage, rev_seed)    
-
-                   rev_seed = 1.0
                    call point_tri(A1batch, B1batch, C1batch, B2batch, distance_vec(11))
-                   call point_tri_b(A1batch, dA1(:,11), B1batch, dB1(:,11), C1batch, dC1(:,11), &
-                                   B2batch, dB2(:,11), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call point_tri(A1batch, B1batch, C1batch, C2batch, distance_vec(12))
-                   call point_tri_b(A1batch, dA1(:,12), B1batch, dB1(:,12), C1batch, dC1(:,12), &
-                                   C2batch, dC2(:,12), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call point_tri(A2batch, B2batch, C2batch, A1batch, distance_vec(13))
-                   call point_tri_b(A2batch, dA2(:,13), B2batch, dB2(:,13), C2batch, dC2(:,13), &
-                                   A1batch, dA1(:,13), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call point_tri(A2batch, B2batch, C2batch, B1batch, distance_vec(14))
-                   call point_tri_b(A2batch, dA2(:,14), B2batch, dB2(:,14), C2batch, dC2(:,14), &
-                                   B1batch, dB1(:,14), garbage, rev_seed)
-
-                   rev_seed = 1.0
                    call point_tri(A2batch, B2batch, C2batch, C1batch, distance_vec(15))
-                   call point_tri_b(A2batch, dA2(:,15), B2batch, dB2(:,15), C2batch, dC2(:,15), &
-                                   C1batch, dC1(:,15), garbage, rev_seed)
-
                    call minval_and_loc(distance_vec, 15, d, minloc_index)
                    call compare_and_swap_minimum(cur_min_dist, d)
 
-                   dist_subtract_temp = mindist_in - distance_vec
-                   base_exp_temp = exp(rho*dist_subtract_temp)
-                   base_exp_accumulator_local = base_exp_accumulator_local + sum(base_exp_temp)
-                   sumdA1 = 0.0
-                   sumdB1 = 0.0
-                   sumdC1 = 0.0
-                   sumdA2 = 0.0
-                   sumdB2 = 0.0
-                   sumdC2 = 0.0
-                   do inner_count = 1,15
-                       sumdA1 = sumdA1 - dA1(:,inner_count)*base_exp_temp(inner_count)
-                       sumdB1 = sumdB1 - dB1(:,inner_count)*base_exp_temp(inner_count)
-                       sumdC1 = sumdC1 - dC1(:,inner_count)*base_exp_temp(inner_count)
-                       sumdA2 = sumdA2 - dA2(:,inner_count)*base_exp_temp(inner_count)
-                       sumdB2 = sumdB2 - dB2(:,inner_count)*base_exp_temp(inner_count)
-                       sumdC2 = sumdC2 - dC2(:,inner_count)*base_exp_temp(inner_count)
-                       
-                   end do
-                   dKSdA1_local(:, tri_ind_1_local) = dKSdA1_local(:, tri_ind_1_local) + sumdA1
-                   dKSdB1_local(:, tri_ind_1_local) = dKSdB1_local(:, tri_ind_1_local) + sumdB1
-                   dKSdC1_local(:, tri_ind_1_local) = dKSdC1_local(:, tri_ind_1_local) + sumdC1
-                   dKSdA2_local(:, tri_ind_2) = dKSdA2_local(:, tri_ind_2) + sumdA2
-                   dKSdB2_local(:, tri_ind_2) = dKSdB2_local(:, tri_ind_2) + sumdB2
-                   dKSdC2_local(:, tri_ind_2) = dKSdC2_local(:, tri_ind_2) + sumdC2
+                   rev_seed = 1.0
+                   select case (minloc_index)
+                    case (1)
+                        call line_line_b(A1batch, dA1, B1batch, dB1, &
+                                        A2batch, dA2, B2batch, dB2, garbage, rev_seed)
+                    case (2)
+                        call line_line_b(A1batch, dA1, B1batch, dB1, &
+                                        B2batch, dB2, C2batch, dC2, garbage, rev_seed)
+                    case (3)
+                        call line_line_b(A1batch, dA1, B1batch, dB1, &
+                                        A2batch, dA2, C2batch, dC2, garbage, rev_seed)
+                    case (4)
+                        call line_line_b(B1batch, dB1, C1batch, dC1, &
+                                       A2batch, dA2, B2batch, dB2, garbage, rev_seed)
+                    case (5)
+                        call line_line_b(B1batch, dB1, C1batch, dC1, &
+                                       B2batch, dB2, C2batch, dC2, garbage, rev_seed)
+                    case (6)
+                        call line_line_b(B1batch, dB1, C1batch, dC1, &
+                                       A2batch, dA2, C2batch, dC2, garbage, rev_seed)
+                    case (7)
+                        call line_line_b(A1batch, dA1, C1batch, dC1, &
+                                       A2batch, dA2, B2batch, dB2, garbage, rev_seed)
+                    case (8)
+                        call line_line_b(A1batch, dA1, C1batch, dC1, &
+                                       B2batch, dB2, C2batch, dC2, garbage, rev_seed)
+                    case (9)
+                        call line_line_b(A1batch, dA1, C1batch, dC1, &
+                                       A2batch, dA2, C2batch, dC2, garbage, rev_seed)
+
+                   ! do 6 point-triangle comparison tests
+                    case (10)
+                        call point_tri_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
+                                         A2batch, dA2, garbage, rev_seed)    
+                    case (11)
+                        call point_tri_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
+                                         B2batch, dB2, garbage, rev_seed)
+                    case (12)
+                        call point_tri_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
+                                         C2batch, dC2, garbage, rev_seed)
+                    case (13)
+                        call point_tri_b(A2batch, dA2, B2batch, dB2, C2batch, dC2, &
+                                         A1batch, dA1, garbage, rev_seed)
+                    case (14)
+                        call point_tri_b(A2batch, dA2, B2batch, dB2, C2batch, dC2, &
+                                         B1batch, dB1, garbage, rev_seed)
+                    case (15)
+                        call point_tri_b(A2batch, dA2, B2batch, dB2, C2batch, dC2, &
+                                         C1batch, dC1, garbage, rev_seed)
+                    END select
+
+
+                    ! dist_subtract_temp = mindist_in - distance_vec
+                    base_exp_temp = exp((mindist_in - d)*rho)*15
+                    base_exp_accumulator_local = base_exp_accumulator_local + base_exp_temp
+                    sumdA1 = -dA1*base_exp_temp
+                    sumdB1 = -dB1*base_exp_temp
+                    sumdC1 = -dC1*base_exp_temp
+                    sumdA2 = -dA2*base_exp_temp
+                    sumdB2 = -dB2*base_exp_temp
+                    sumdC2 = -dC2*base_exp_temp
+                    dKSdA1_local(:, tri_ind_1_local) = dKSdA1_local(:, tri_ind_1_local) + sumdA1
+                    dKSdB1_local(:, tri_ind_1_local) = dKSdB1_local(:, tri_ind_1_local) + sumdB1
+                    dKSdC1_local(:, tri_ind_1_local) = dKSdC1_local(:, tri_ind_1_local) + sumdC1
+                    dKSdA2_local(:, tri_ind_2) = dKSdA2_local(:, tri_ind_2) + sumdA2
+                    dKSdB2_local(:, tri_ind_2) = dKSdB2_local(:, tri_ind_2) + sumdB2
+                    dKSdC2_local(:, tri_ind_2) = dKSdC2_local(:, tri_ind_2) + sumdC2
                end do
            end if
            ! CALL CPU_TIME(real(end_time))
@@ -543,8 +525,9 @@ end subroutine compute_derivs
 
                         if (mindist_in /= second_pass_flag) then
                         ! compute KS function on second pass only
-                            ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
-                        ! compute the intersection on second pass only
+                        !    ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
+                            ks_accumulator_local = ks_accumulator_local + 15 * exp((mindist_in - d)*rho)
+                            ! compute the intersection on second pass only
                             call intersect(A1batch, B1batch, C1batch, &
                             A2batch, B2batch, C2batch, intersect_temp)
                             intersect_length_local = intersect_temp + intersect_length_local
