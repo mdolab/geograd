@@ -77,28 +77,31 @@ class BWBTestCase(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
+        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
+
 
     def test_values(self):
         transl_vec = np.linspace(0,28.0, 50)
-        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, 2.0)
+        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, self.maxdim)
         self.assertAlmostEqual(0.1698771104979689, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
 
         start=time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
-            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, 2.0)
+            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
             # if MPI.COMM_WORLD.rank == 0:
             #     print('Dist: '+str(result[2])+' Int: '+str(result[1])+' KS: '+str(result[0]))
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs of analysis only: '+str(end-start))
         loop_time = 0
+        py_time = 0
         start = time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
-            # result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, 2.0)
-            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 0.10, 10, 2.0)
+            # result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
+            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 0.10, 10, self.maxdim)
             loop_time = loop_time+result[3]
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:

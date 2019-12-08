@@ -151,12 +151,12 @@ python module geograd ! in
             end subroutine compute
         end module geograd
         module geograd_parallel ! in :geograd:src/geograd_parallel.F90
-            subroutine compute_derivs(ks,intersect_length,mindist,loop_time,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute_derivs(ks,intersect_length,mindist,timings,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles_db
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
                 real(kind=8) intent(out) :: mindist
-                real(kind=8) intent(out) :: loop_time
+                real(kind=8) intent(out), dimension(4) :: timings
                 real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksda1
                 real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksdb1
                 real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dksdc1
