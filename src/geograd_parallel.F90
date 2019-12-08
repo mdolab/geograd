@@ -160,7 +160,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
    integer :: status(MPI_STATUS_SIZE)
 
 #ifdef INSTRUMENTATION
-   call CPU_TIME(start_time)
+   start_time = MPI_Wtime()
 #endif
 
    call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
@@ -240,7 +240,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
        dKSdB2_local = 0.0
        dKSdC2_local = 0.0
 #ifdef INSTRUMENTATION
-       call CPU_TIME(loop_start)
+       loop_start = MPI_Wtime()
 #endif
        do tri_ind_1_local = 1, proc_split(id)
            ! check this triangle is getting computed
@@ -353,7 +353,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
                     dKSdC2_local(:, tri_ind_2) = dKSdC2_local(:, tri_ind_2) + sumdC2
                end do
            end if
-           ! CALL CPU_TIME(real(end_time))
+           ! real(end_time))
            !elapsed_time = end_time - start_time
        end do
 
@@ -364,7 +364,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
         call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
 
 #ifdef INSTRUMENTATION
-        call CPU_TIME(loop_end)
+        loop_end = MPI_Wtime()
 #endif
        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
        call MPI_Igatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
@@ -422,7 +422,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
        call MPI_Wait(req5, status, error)
        call MPI_Wait(req6, status, error)
 #ifdef INSTRUMENTATION
-       call CPU_TIME(end_time)
+       end_time = MPI_Wtime()
 #endif
     !    call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
        ! compute the imbalance
@@ -551,7 +551,7 @@ end subroutine compute_derivs
                                 MPI_INTEGER, MPI_COMM_WORLD, error)
             
             call load_balance_split(proc_split, proc_disp, bb_flag_vec, n1, n_procs)
-            ! CALL CPU_TIME(real(start_time))
+            ! real(start_time))
             do tri_ind_1_local = 1, proc_split(id)
                 ! TODO implement this
                 ! check this triangle is getting computed
@@ -604,7 +604,7 @@ end subroutine compute_derivs
                         end if
                     end do
                 end if
-                ! CALL CPU_TIME(real(end_time))
+                ! real(end_time))
                 ! elapsed_time = end_time - start_time
             end do
             ! do the reductions
