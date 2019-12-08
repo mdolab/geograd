@@ -97,16 +97,19 @@ class BWBTestCase(unittest.TestCase):
             print('Elapsed time for 50 runs of analysis only: '+str(end-start))
         loop_time = 0
         py_time = 0
+        unbalance = 0
         start = time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
             # result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
             result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 0.10, 10, self.maxdim)
             loop_time = loop_time+result[3]
+            unbalance += result[4]
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs with derivatives: '+str(end-start))
             print('Loop time: '+str(loop_time))
+            print('Avg unbalance: '+str(unbalance/50)+' percent')
 
 
 if __name__ == '__main__':

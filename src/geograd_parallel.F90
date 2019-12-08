@@ -119,7 +119,7 @@ module geograd_parallel
     end subroutine check_bb_tol
 
 #ifndef USE_COMPLEX
-subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
+subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
     A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
    use triangles_db
    use mpi
@@ -128,7 +128,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
    real(kind=8), dimension(3,n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
    real(kind=8), dimension(3,n2), INTENT(in) :: A2, B2, C2 ! second triangulated surface vertices
    real(kind=8), INTENT(in) :: mindist_in, rho, obj_tol_in ! known global minimum distance (used for second pass, computing KS)
-   real(kind=8), intent(out) :: KS, intersect_length, mindist ! results
+   real(kind=8), intent(out) :: KS, intersect_length, mindist, unbalance ! results
    real(kind=8), INTENT(out), dimension(4) :: timings
    real(kind=8), intent(out), dimension(3,n1) :: dKSdA1, dKSdB1, dKSdC1
    real(kind=8), intent(out), dimension(3,n2) :: dKSdA2, dKSdB2, dKSdC2
@@ -443,7 +443,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
         timings_temp(3) = reduce_time
         timings_temp(4) = overall_time
         call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
-        ! call MPI_Allreduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+        call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_COMM_WORLD, error)
+        unbalance = (timings(2) - min_loop_time)/timings(2)*100
         ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
