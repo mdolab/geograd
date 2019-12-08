@@ -25,12 +25,12 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
         result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho, maxdim)
         result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho, maxdim)
         ks_base = result2[0]
-        A1_grad = result2[3]
-        B1_grad = result2[4]
-        C1_grad = result2[5]
-        A2_grad = result2[6]
-        B2_grad = result2[7]
-        C2_grad = result2[8]
+        A1_grad = result2[5]
+        B1_grad = result2[6]
+        C1_grad = result2[7]
+        A2_grad = result2[8]
+        B2_grad = result2[9]
+        C2_grad = result2[10]
 
         # because of the way STL files are stored, mesh vertices appear multiple times in the ABC matrices.
         # they need to be manipulated at the same time or the minimum distance gradients won't be correct
@@ -85,7 +85,6 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                         C1_alt[k,jind] = C1_alt[k,jind] + cseps*1.0j
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C1_grad[k,jind]
-                    
                     resultcs = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim)
                     resultcs2 = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultcs[2], rho, maxdim)
                     ks_cs = resultcs2[0]
@@ -210,7 +209,6 @@ def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, i
                     gradfd_ks = (ks_fd - ks_base) / fdeps
 
                     custom_assert(testcase, gradfd_ks, exact_grad_ks)
-
 
         testcase.assertTrue(tot_counter > 0, msg='If tot_counter remains zero there is some issue finding close points using the numpy slicing and searching')
         testcase.assertTrue(nonzero_grad_ks, msg='Check to make sure at least one gradient checked is actually nonzero')

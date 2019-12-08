@@ -366,23 +366,23 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
         call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
 
        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
-       call MPI_Igatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, req1, error)
+       call MPI_IAllgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req1, error)
 
        dKSdB1_local = (1 / base_exp_accumulator) * dKSdB1_local
-       call MPI_Igatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdB1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, req2, error)  
+       call MPI_IAllgatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdB1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req2, error)  
 
        dKSdC1_local = (1 / base_exp_accumulator) * dKSdC1_local
-       call MPI_Igatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, req3, error)
+       call MPI_IAllgatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req3, error)
 
        dKSdA2_local = (1 / base_exp_accumulator) * dKSdA2_local
-       call MPI_Ireduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, req4, error)
+       call MPI_IAllreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req4, error)
        dKSdB2_local = (1 / base_exp_accumulator) * dKSdB2_local
-       call MPI_Ireduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, req5, error)
+       call MPI_IAllreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req5, error)
        dKSdC2_local = (1 / base_exp_accumulator) * dKSdC2_local
-       call MPI_Ireduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, req6, error)
+       call MPI_IAllreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req6, error)
 
        ! allgatherv the ABC1 derivatives
     !    call MPI_Allgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
