@@ -109,7 +109,7 @@ class BWBTestCase(unittest.TestCase):
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs with derivatives: '+str(end-start))
             print('Loop time: '+str(loop_time))
-            print('Avg unbalance: '+str(unbalance/50)+' percent')
+            print('Avg loop utilization: '+str(unbalance/50)+' percent')
 
 
 if __name__ == '__main__':
