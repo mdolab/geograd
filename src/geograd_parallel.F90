@@ -443,8 +443,10 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
         timings_temp(3) = reduce_time
         timings_temp(4) = overall_time
         call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
-        call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_COMM_WORLD, error)
-        unbalance = (timings(2) - min_loop_time)/timings(2)*100
+        call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
+        ! compute avg utilization instead of max under utilization
+        unbalance = (min_loop_time / n_procs) / timings(2) * 100
+        ! unbalance = (timings(2) - min_loop_time)/timings(2)*100
         ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
