@@ -151,7 +151,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
    real(kind=8), dimension(3) :: obj_mins, obj_maxs, this_tri_mins, this_tri_maxs
    real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, &
                    obj_bb_zmin, obj_bb_zmax
-
+   real(kind=8), dimension(4) :: timings_temp
    real(kind=8) :: elapsed_time, max_time, min_time
    real(kind=8) :: start_time, loop_start, loop_end, end_time, load_balancing_time, &
    reduce_time, overall_time, min_loop_time, min_reduce_time, loop_time
@@ -356,16 +356,15 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
            ! real(end_time))
            !elapsed_time = end_time - start_time
        end do
-
+#ifdef INSTRUMENTATION
+       loop_end = MPI_Wtime()
+#endif
        ! allreduce the base exp
         call MPI_Allreduce(base_exp_accumulator_local, base_exp_accumulator, 1, &
                        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
         KS = (1/rho) * log(base_exp_accumulator) - mindist_in
         call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
 
-#ifdef INSTRUMENTATION
-        loop_end = MPI_Wtime()
-#endif
        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
        call MPI_Igatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
        proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, req1, error)
@@ -439,11 +438,11 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, dKSdA1, dKSdB1
         loop_time = loop_end - loop_start
         reduce_time = end_time - loop_end
         overall_time = end_time - start_time
-        timings(1) = load_balancing_time
-        timings(2) = loop_time
-        timings(3) = reduce_time
-        timings(4) = overall_time
-        call MPI_Reduce(timings, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
+        timings_temp(1) = load_balancing_time
+        timings_temp(2) = loop_time
+        timings_temp(3) = reduce_time
+        timings_temp(4) = overall_time
+        call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
