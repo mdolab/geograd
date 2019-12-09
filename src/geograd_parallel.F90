@@ -281,6 +281,9 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
     !    if (id == 0) then
     !     print *,'Disps: ',proc_disp
     !    end if
+#ifdef INSTRUMENTATION
+       loop_start = MPI_Wtime()
+#endif
        allocate(dKSdA1_local(3, proc_split(id)), &
                dKSdB1_local(3, proc_split(id)), &
                dKSdC1_local(3, proc_split(id)))
@@ -291,9 +294,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        dKSdA2_local = 0.0
        dKSdB2_local = 0.0
        dKSdC2_local = 0.0
-#ifdef INSTRUMENTATION
-       loop_start = MPI_Wtime()
-#endif
+
        do tri_ind_1_local = 1, proc_split(id)
            ! check this triangle is getting computed
            ! if no, compute a KS contribution equal to the width of the component times the number of facets
