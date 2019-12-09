@@ -21,15 +21,79 @@ module geograd_parallel
         end do
     end subroutine even_proc_split
 
-    subroutine load_balance_split(proc_split, proc_disp, bb_test_result, n_tris, n_procs)
-        implicit none
-        integer, intent(in) :: n_tris, n_procs
-        integer, intent(in), dimension(n_tris) :: bb_test_result
-        integer, intent(out), dimension(0:(n_procs-1)) :: proc_split, proc_disp
-        integer :: proc_idx, tri_idx, cumsum, bb_active_count, start_val_this_proc
-        integer, dimension(0:(n_procs-1)) :: active_split, active_disp
 
-        bb_active_count = sum(bb_test_result) ! total number of triangles that need expensive computation
+    logical function bb_test(A, B, C, obj_tol, obj_mins, obj_maxs)
+        implicit none
+        real(kind=8), intent(in), dimension(3) :: A, B, C, obj_mins, obj_maxs
+        real(kind=8), intent(in) :: obj_tol
+        real(kind=8), dimension(3) :: this_tri_mins, this_tri_maxs
+        real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax
+        ! TODO would it be faster to feed these in as pre-computed args?
+        obj_bb_xmin = obj_mins(1) - obj_tol
+        obj_bb_xmax = obj_maxs(1) + obj_tol 
+        obj_bb_ymin = obj_mins(2) - obj_tol
+        obj_bb_ymax = obj_maxs(2) + obj_tol   
+        obj_bb_zmin = obj_mins(3) - obj_tol
+        obj_bb_zmax = obj_maxs(3) + obj_tol
+ 
+        this_tri_mins = min(A, B, C)
+        this_tri_maxs = max(A, B, C)
+        ! check spanwise direction first
+        if (this_tri_mins(3) > obj_bb_zmax) then
+            bb_test = .FALSE.
+        else if (this_tri_maxs(3) < obj_bb_zmin) then
+            bb_test = .FALSE.
+        else if (this_tri_mins(1) > obj_bb_xmax) then
+            bb_test = .FALSE.
+        else if (this_tri_maxs(1) < obj_bb_xmin) then
+            bb_test = .FALSE.
+        else if (this_tri_mins(2) > obj_bb_ymax) then 
+            bb_test = .FALSE.
+        else if (this_tri_maxs(2) < obj_bb_ymin) then
+            bb_test = .FALSE.
+        else
+            bb_test = .TRUE.
+        end if
+    end function bb_test 
+
+    subroutine load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n_tris, n_procs, id)
+        use mpi
+        implicit none
+        integer, intent(in) :: n_tris, n_procs, id
+        real(kind=8), intent(in) :: obj_tol
+        real(kind=8), intent(in), dimension(3, n_tris) :: A1, B1, C1
+        real(kind=8), intent(in), dimension(3) :: obj_mins, obj_maxs
+        integer, intent(inout), dimension(0:(n_procs-1)) :: proc_split, proc_disp
+        integer, dimension(0:(n_procs-1)) :: proc_disp_local
+
+        integer :: proc_idx, tri_idx, local_idx, cumsum, bb_active_count, start_val_this_proc, error
+        integer :: tri_ind_1_local, bb_active_this_proc, bb_active
+        integer, dimension(0:(n_procs-1)) :: bb_active_all_procs
+        integer, dimension(0:(n_procs-1)) :: active_split, active_disp
+        integer, dimension(proc_split(id)) :: bb_flag_vec_local
+        real(kind=8), dimension(3) :: A1batch, B1batch, C1batch
+
+        ! compute the bb tests locally and store in an array
+        bb_flag_vec_local = 0 
+        do tri_ind_1_local = 1, proc_split(id)
+            ! compute the bounding box test here for the load balance
+ 
+            A1batch = A1(:,tri_ind_1_local+proc_disp(id))
+            B1batch = B1(:,tri_ind_1_local+proc_disp(id))
+            C1batch = C1(:,tri_ind_1_local+proc_disp(id))
+            ! do a cheap bounding box check and potentially skip the n2 loop
+            if (bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
+                 bb_flag_vec_local(tri_ind_1_local) = 1
+            end if
+        end do
+
+        ! get count of active tests
+        bb_active_this_proc = sum(bb_flag_vec_local) ! total number of triangles that need expensive computation
+        ! allgather the active test counts
+        call MPI_Allgather(bb_active_this_proc, 1, MPI_INTEGER, &
+                      bb_active_all_procs, 1, MPI_INTEGER, MPI_COMM_WORLD, error)
+        bb_active_count = sum(bb_active_all_procs)
+
         if (bb_active_count < n_procs) then
             ! degenerate case where there is less than one triangle to compute per processor
             return
@@ -37,18 +101,37 @@ module geograd_parallel
 
         call even_proc_split(active_split, active_disp, bb_active_count, n_procs) ! split the active triangles evenly across procs
 
-        tri_idx = 1
-        cumsum = bb_test_result(tri_idx) !keep a running total
-        proc_disp(0) = 0 ! first processor always starts at first entry in the array
+        ! run the cumsum loop in a distributed way
+        ! how many active triangles precede this processor?
+        proc_idx = 0
+        cumsum = 0
+        do while (proc_idx < id)
+            cumsum = cumsum + bb_active_all_procs(proc_idx)
+            proc_idx = proc_idx + 1
+        end do
 
+        local_idx = 1
+        tri_idx = proc_disp(id) + local_idx ! MPI uses zero indexing. GLOBAL count
+        cumsum = cumsum + bb_flag_vec_local(local_idx) !keep a running total
+        proc_disp_local(0) = 0 ! first processor always starts at first entry in the array
         do proc_idx = 1, n_procs-1
             start_val_this_proc = active_disp(proc_idx) + 1
-            do while (cumsum /= start_val_this_proc)
-                
+            do while ((cumsum < start_val_this_proc) .AND. (local_idx <= proc_split(id)))
+                local_idx = local_idx + 1
                 tri_idx = tri_idx + 1
-                cumsum = cumsum + bb_test_result(tri_idx)
+                cumsum = cumsum + bb_flag_vec_local(local_idx)
             end do
-            proc_disp(proc_idx) = tri_idx - 1
+            if (local_idx > proc_split(id)) then
+                proc_disp_local(proc_idx) = 2000000000
+            else
+                proc_disp_local(proc_idx) = tri_idx - 1
+            end if
+        end do
+        ! allreduce the disps
+        call MPI_Allreduce(proc_disp_local, proc_disp, n_procs, &
+                       MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, error)
+        ! compute the counts
+        do proc_idx = 1, n_procs-1
             proc_split(proc_idx - 1) = proc_disp(proc_idx) - proc_disp(proc_idx - 1)
         end do
         proc_split(n_procs-1) = n_tris - proc_disp(n_procs-1)
@@ -182,53 +265,14 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        ! split all the triangles evenly across the processors to compute the bounding box tests
        call even_proc_split(proc_split, proc_disp, n1, n_procs)
 
-
        cur_min_dist = 9.9e10
        intersect_length_local = 0.0_8
        base_exp_accumulator_local = 0.0
        call check_bb_tol(obj_mins, obj_maxs, A2, B2, C2, n2, obj_tol, id)
-       ! compute the bounds of the box (add the width in both directions)
-       obj_bb_xmin = obj_mins(1) - obj_tol
-       obj_bb_xmax = obj_maxs(1) + obj_tol 
-       obj_bb_ymin = obj_mins(2) - obj_tol
-       obj_bb_ymax = obj_maxs(2) + obj_tol   
-       obj_bb_zmin = obj_mins(3) - obj_tol
-       obj_bb_zmax = obj_maxs(3) + obj_tol
-
-       bb_flag_vec_local = 1 ! initialize to 1
-
-       do tri_ind_1_local = 1, proc_split(id)
-           ! compute the bounding box test here for the load balance
-
-           A1batch = A1(:,tri_ind_1_local+proc_disp(id))
-           B1batch = B1(:,tri_ind_1_local+proc_disp(id))
-           C1batch = C1(:,tri_ind_1_local+proc_disp(id))
-           ! do a cheap bounding box check and potentially skip the n2 loop
-           ! find the extents of A1
-           this_tri_mins = min(A1batch, B1batch, C1batch)
-           this_tri_maxs = max(A1batch, B1batch, C1batch)
-           
-           ! check spanwise direction first
-           outside_bb_flag = -1
-           if (this_tri_mins(3) > obj_bb_zmax) then
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           else if (this_tri_maxs(3) < obj_bb_zmin) then
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           else if (this_tri_mins(1) > obj_bb_xmax) then
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           else if (this_tri_maxs(1) < obj_bb_xmin) then
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           else if (this_tri_mins(2) > obj_bb_ymax) then 
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           else if (this_tri_maxs(2) < obj_bb_ymin) then
-               bb_flag_vec_local(tri_ind_1_local) = 0
-           end if
-       end do
-
-       call MPI_Allgatherv(bb_flag_vec_local, proc_split(id), MPI_INTEGER, bb_flag_vec, proc_split, proc_disp, &
-                           MPI_INTEGER, MPI_COMM_WORLD, error)
-       
-       call load_balance_split(proc_split, proc_disp, bb_flag_vec, n1, n_procs)
+       call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
+       if (id == 0) then
+        print *,'Disps: ',proc_disp
+       end if
        allocate(dKSdA1_local(3, proc_split(id)), &
                dKSdB1_local(3, proc_split(id)), &
                dKSdC1_local(3, proc_split(id)))
@@ -251,7 +295,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
            B1batch = B1(:,tri_ind_1_local+proc_disp(id))
            C1batch = C1(:,tri_ind_1_local+proc_disp(id))
           
-           if (bb_flag_vec(tri_ind_1_local+proc_disp(id)) == 0) then
+           if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
                ! do not bother computing the actual pairwise tests. Add a conservative estimate
                base_exp_accumulator_local = base_exp_accumulator_local + exp(-obj_tol*rho)*15
            else                
@@ -512,47 +556,8 @@ end subroutine compute_derivs
             intersect_length_local = 0.0_8
             ks_accumulator_local = 0.0_8
             call check_bb_tol(obj_mins, obj_maxs, A2, B2, C2, n2, obj_tol, id)
-            ! compute the bounds of the box (add the width in both directions)
-            obj_bb_xmin = obj_mins(1) - obj_tol
-            obj_bb_xmax = obj_maxs(1) + obj_tol 
-            obj_bb_ymin = obj_mins(2) - obj_tol
-            obj_bb_ymax = obj_maxs(2) + obj_tol   
-            obj_bb_zmin = obj_mins(3) - obj_tol
-            obj_bb_zmax = obj_maxs(3) + obj_tol
+            call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
 
-            bb_flag_vec_local = 1 ! initialize to 1
-            do tri_ind_1_local = 1, proc_split(id)
-                ! compute the bounding box test here for the load balance
-
-                A1batch = A1(:,tri_ind_1_local+proc_disp(id))
-                B1batch = B1(:,tri_ind_1_local+proc_disp(id))
-                C1batch = C1(:,tri_ind_1_local+proc_disp(id))
-                ! do a cheap bounding box check and potentially skip the n2 loop
-                ! find the extents of A1
-                this_tri_mins = min(A1batch, B1batch, C1batch)
-                this_tri_maxs = max(A1batch, B1batch, C1batch)
-                
-                ! check spanwise direction first
-                outside_bb_flag = -1
-                if (this_tri_mins(3) > obj_bb_zmax) then
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                else if (this_tri_maxs(3) < obj_bb_zmin) then
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                else if (this_tri_mins(1) > obj_bb_xmax) then
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                else if (this_tri_maxs(1) < obj_bb_xmin) then
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                else if (this_tri_mins(2) > obj_bb_ymax) then 
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                else if (this_tri_maxs(2) < obj_bb_ymin) then
-                    bb_flag_vec_local(tri_ind_1_local) = 0
-                end if
-            end do
-            
-            call MPI_Allgatherv(bb_flag_vec_local, proc_split(id), MPI_INTEGER, bb_flag_vec, proc_split, proc_disp, &
-                                MPI_INTEGER, MPI_COMM_WORLD, error)
-            
-            call load_balance_split(proc_split, proc_disp, bb_flag_vec, n1, n_procs)
             ! real(start_time))
             do tri_ind_1_local = 1, proc_split(id)
                 ! TODO implement this
@@ -564,7 +569,7 @@ end subroutine compute_derivs
                 B1batch = B1(:,tri_ind_1_local+proc_disp(id))
                 C1batch = C1(:,tri_ind_1_local+proc_disp(id))
                
-                if (bb_flag_vec(tri_ind_1_local+proc_disp(id)) == 0) then
+                if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
                     ! do not bother computing the actual pairwise tests. Add a conservative estimate
                     ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)*15
                 else
