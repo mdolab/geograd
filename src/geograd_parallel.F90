@@ -244,6 +244,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    integer :: status(MPI_STATUS_SIZE)
 
 #ifdef INSTRUMENTATION
+    call MPI_Barrier(MPI_COMM_WORLD, error)        
    start_time = MPI_Wtime()
 #endif
 
@@ -548,7 +549,8 @@ end subroutine compute_derivs
 
 #ifdef INSTRUMENTATION
 #ifndef USE_COMPLEX
-   start_time = MPI_Wtime()
+        call MPI_Barrier(MPI_COMM_WORLD, error)        
+        start_time = MPI_Wtime()
 #endif
 #endif
 
