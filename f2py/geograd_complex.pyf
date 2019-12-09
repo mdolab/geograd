@@ -46,10 +46,12 @@ python module geograd_complex ! in
             end subroutine compute
         end module geograd
         module geograd_parallel ! in :geograd:src/geograd_parallel.F90
-            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute(ks,intersect_length,mindist,timings,unbalance,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
                 complex(kind=8) intent(out) :: ks
                 complex(kind=8) intent(out) :: intersect_length
                 complex(kind=8) intent(out) :: mindist
+                complex(kind=8) intent(out) :: unbalance
+                complex(kind=8) intent(out), dimension(4) :: timings
                 complex(kind=8) dimension(3,n1),intent(in) :: a1
                 complex(kind=8) dimension(3,n1),intent(in),depend(n1) :: b1
                 complex(kind=8) dimension(3,n1),intent(in),depend(n1) :: c1

@@ -176,11 +176,13 @@ python module geograd ! in
                 real(kind=8) intent(in) :: rho
                 real(kind=8) intent(in) :: obj_tol_in
             end subroutine compute_derivs
-            subroutine compute(ks,intersect_length,mindist,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute(ks,intersect_length,mindist,timings,unbalance,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
                 real(kind=8) intent(out) :: mindist
+                real(kind=8) intent(out) :: unbalance
+                real(kind=8) intent(out), dimension(4) :: timings
                 real(kind=8) dimension(3,n1),intent(in) :: a1
                 real(kind=8) dimension(3,n1),intent(in),depend(n1) :: b1
                 real(kind=8) dimension(3,n1),intent(in),depend(n1) :: c1

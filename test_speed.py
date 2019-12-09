@@ -85,18 +85,20 @@ class BWBTestCase(unittest.TestCase):
         result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, self.maxdim)
         self.assertAlmostEqual(0.1698771104979689, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
-
+        loop_time = 0
+        unbalance = 0
         start=time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
             result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
-            # if MPI.COMM_WORLD.rank == 0:
-            #     print('Dist: '+str(result[2])+' Int: '+str(result[1])+' KS: '+str(result[0]))
+            loop_time = loop_time+result[3]
+            unbalance += result[4]
         end = time.time()
         if MPI.COMM_WORLD.rank == 0:
             print('Elapsed time for 50 runs of analysis only: '+str(end-start))
+            print('Loop time: '+str(loop_time))
+            print('Avg loop utilization: '+str(unbalance/50)+' percent')
         loop_time = 0
-        py_time = 0
         unbalance = 0
         start = time.time()
         for i in range(50):

@@ -515,7 +515,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
 end subroutine compute_derivs
 #endif
 
-    subroutine compute(KS, intersect_length, mindist, A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
+    subroutine compute(KS, intersect_length, mindist, timings, unbalance, A1, &
+                    B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
         use triangles
         use mpi
         implicit none
@@ -524,6 +525,8 @@ end subroutine compute_derivs
         real(kind=8), dimension(3,n2), INTENT(in) :: A2, B2, C2 ! second triangulated surface vertices
         real(kind=8), INTENT(in) :: mindist_in, rho, obj_tol_in ! known global minimum distance (used for second pass, computing KS)
         real(kind=8), intent(out) :: KS, intersect_length, mindist ! results
+        real(kind=8), INTENT(out), dimension(4) :: timings
+
         integer :: tri_ind_1_local, tri_ind_2, minloc_index ! loop indices
         real(kind=8) :: d, cur_min_dist, intersect_temp, intersect_length_local, ks_accumulator_local, ks_accumulator, obj_tol
         real(kind=8), dimension(15) :: distance_vec
@@ -538,7 +541,16 @@ end subroutine compute_derivs
         real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, &
                         obj_bb_zmin, obj_bb_zmax
 
-        real(kind=8) :: start_time, end_time, elapsed_time, max_time, min_time
+        real(kind=8) :: start_time, loop_start, loop_end, end_time, load_balancing_time, &
+                        reduce_time, overall_time, min_loop_time, min_reduce_time, loop_time, unbalance
+        real(kind=8), dimension(4) :: timings_temp
+
+#ifdef INSTRUMENTATION
+#ifndef USE_COMPLEX
+   start_time = MPI_Wtime()
+#endif
+#endif
+
         call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
         call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
         allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
@@ -574,7 +586,11 @@ end subroutine compute_derivs
             obj_bb_zmin = obj_mins(3) - obj_tol
             obj_bb_zmax = obj_maxs(3) + obj_tol
             call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
-
+#ifdef INSTRUMENTATION
+#ifndef USE_COMPLEX
+            loop_start = MPI_Wtime()
+#endif
+#endif
             ! real(start_time))
             do tri_ind_1_local = 1, proc_split(id)
                 ! TODO implement this
@@ -633,7 +649,11 @@ end subroutine compute_derivs
                 ! elapsed_time = end_time - start_time
             end do
             ! do the reductions
-            
+#ifdef INSTRUMENTATION
+#ifndef USE_COMPLEX
+       loop_end = MPI_Wtime()
+#endif
+#endif
             ! compute the imbalance
             ! call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
             ! call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
@@ -653,6 +673,28 @@ end subroutine compute_derivs
                 KS = zero
             end if
             obj_tol = obj_tol * 2.0
+#ifdef INSTRUMENTATION
+#ifndef USE_COMPLEX
+            end_time = MPI_Wtime()
+             load_balancing_time = loop_start - start_time
+             loop_time = loop_end - loop_start
+             reduce_time = end_time - loop_end
+             overall_time = end_time - start_time
+             timings_temp(1) = load_balancing_time
+             timings_temp(2) = loop_time
+             timings_temp(3) = reduce_time
+             timings_temp(4) = overall_time
+             call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
+             call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
+             ! compute avg utilization instead of max under utilization
+             unbalance = (min_loop_time / n_procs) / timings(2) * 100
+             ! unbalance = (timings(2) - min_loop_time)/timings(2)*100
+             ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
+             ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+             ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
+             ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
+#endif
+#endif
         end do
     end subroutine compute
 
