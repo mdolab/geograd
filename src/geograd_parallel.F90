@@ -22,19 +22,11 @@ module geograd_parallel
     end subroutine even_proc_split
 
 
-    logical function bb_test(A, B, C, obj_tol, obj_mins, obj_maxs)
+    logical function bb_test(A, B, C, obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)
         implicit none
-        real(kind=8), intent(in), dimension(3) :: A, B, C, obj_mins, obj_maxs
-        real(kind=8), intent(in) :: obj_tol
+        real(kind=8), intent(in), dimension(3) :: A, B, C
+        real(kind=8), intent(in) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax
         real(kind=8), dimension(3) :: this_tri_mins, this_tri_maxs
-        real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax
-        ! TODO would it be faster to feed these in as pre-computed args?
-        obj_bb_xmin = obj_mins(1) - obj_tol
-        obj_bb_xmax = obj_maxs(1) + obj_tol 
-        obj_bb_ymin = obj_mins(2) - obj_tol
-        obj_bb_ymax = obj_maxs(2) + obj_tol   
-        obj_bb_zmin = obj_mins(3) - obj_tol
-        obj_bb_zmax = obj_maxs(3) + obj_tol
  
         this_tri_mins = min(A, B, C)
         this_tri_maxs = max(A, B, C)
@@ -72,6 +64,14 @@ module geograd_parallel
         integer, dimension(0:(n_procs-1)) :: active_split, active_disp
         integer, dimension(proc_split(id)) :: bb_flag_vec_local
         real(kind=8), dimension(3) :: A1batch, B1batch, C1batch
+        real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax
+
+        obj_bb_xmin = obj_mins(1) - obj_tol
+        obj_bb_xmax = obj_maxs(1) + obj_tol 
+        obj_bb_ymin = obj_mins(2) - obj_tol
+        obj_bb_ymax = obj_maxs(2) + obj_tol   
+        obj_bb_zmin = obj_mins(3) - obj_tol
+        obj_bb_zmax = obj_maxs(3) + obj_tol
 
         ! compute the bb tests locally and store in an array
         bb_flag_vec_local = 0 
@@ -82,7 +82,8 @@ module geograd_parallel
             B1batch = B1(:,tri_ind_1_local+proc_disp(id))
             C1batch = C1(:,tri_ind_1_local+proc_disp(id))
             ! do a cheap bounding box check and potentially skip the n2 loop
-            if (bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
+            if (bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
+                        obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                  bb_flag_vec_local(tri_ind_1_local) = 1
             end if
         end do
@@ -262,6 +263,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        ! if the bounding box margin is too small, the minimum distance test can fail to find a point.
        ! if it fails, expand the bounding box margin
 
+
        ! split all the triangles evenly across the processors to compute the bounding box tests
        call even_proc_split(proc_split, proc_disp, n1, n_procs)
 
@@ -269,10 +271,16 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        intersect_length_local = 0.0_8
        base_exp_accumulator_local = 0.0
        call check_bb_tol(obj_mins, obj_maxs, A2, B2, C2, n2, obj_tol, id)
+       obj_bb_xmin = obj_mins(1) - obj_tol
+       obj_bb_xmax = obj_maxs(1) + obj_tol 
+       obj_bb_ymin = obj_mins(2) - obj_tol
+       obj_bb_ymax = obj_maxs(2) + obj_tol   
+       obj_bb_zmin = obj_mins(3) - obj_tol
+       obj_bb_zmax = obj_maxs(3) + obj_tol
        call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
-       if (id == 0) then
-        print *,'Disps: ',proc_disp
-       end if
+    !    if (id == 0) then
+    !     print *,'Disps: ',proc_disp
+    !    end if
        allocate(dKSdA1_local(3, proc_split(id)), &
                dKSdB1_local(3, proc_split(id)), &
                dKSdC1_local(3, proc_split(id)))
@@ -295,7 +303,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
            B1batch = B1(:,tri_ind_1_local+proc_disp(id))
            C1batch = C1(:,tri_ind_1_local+proc_disp(id))
           
-           if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
+           if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
+                             obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                ! do not bother computing the actual pairwise tests. Add a conservative estimate
                base_exp_accumulator_local = base_exp_accumulator_local + exp(-obj_tol*rho)*15
            else                
@@ -550,12 +559,20 @@ end subroutine compute_derivs
             ! if it fails, expand the bounding box margin
             ! print *, 'Beginning the do-while obj tol: ',obj_tol
             ! split all the triangles evenly across the processors to compute the bounding box tests
+
+
             call even_proc_split(proc_split, proc_disp, n1, n_procs)
 
             cur_min_dist = 9.9e10
             intersect_length_local = 0.0_8
             ks_accumulator_local = 0.0_8
             call check_bb_tol(obj_mins, obj_maxs, A2, B2, C2, n2, obj_tol, id)
+            obj_bb_xmin = obj_mins(1) - obj_tol
+            obj_bb_xmax = obj_maxs(1) + obj_tol 
+            obj_bb_ymin = obj_mins(2) - obj_tol
+            obj_bb_ymax = obj_maxs(2) + obj_tol   
+            obj_bb_zmin = obj_mins(3) - obj_tol
+            obj_bb_zmax = obj_maxs(3) + obj_tol
             call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
 
             ! real(start_time))
@@ -569,7 +586,8 @@ end subroutine compute_derivs
                 B1batch = B1(:,tri_ind_1_local+proc_disp(id))
                 C1batch = C1(:,tri_ind_1_local+proc_disp(id))
                
-                if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_tol, obj_mins, obj_maxs)) then
+                if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
+                                  obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                     ! do not bother computing the actual pairwise tests. Add a conservative estimate
                     ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)*15
                 else
