@@ -1,0 +1,150 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{bm}
+\usepackage{ mathrsfs }
+\usepackage{multirow}
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage[backend=bibtex]{biblatex}
+\definecolor{lightgray}{gray}{0.5}
+\setlength{\parindent}{0pt}
+ \usepackage[top=3cm, bottom=2cm, left=1.9cm, right=1.9cm]{geometry}
+
+% \usepackage[table,xcdraw]{xcolor}
+\usepackage{xcolor}
+\colorlet{qblue}{blue!50!black}
+\colorlet{lblue}{blue!50!black}
+\colorlet{fblue}{blue!60!black}
+\colorlet{fred}{red!60!black}
+\DeclareGraphicsExtensions{.pdf,.png}
+
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{booktabs}
+%{\renewcommand{\arraystretch}{1.2}
+\newcommand{\comment}{\algorithmiccomment}
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\newcommand{\captionsize}{\normalfont}
+\newcommand{\captionfont}{\captionsize}
+%\usepackage{verbatimbox} %BB-AY this breaks my TeX setup
+\usepackage{placeins}
+% for fortran code listings
+
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{1pt}
+\title{Accelerating the Computation of Geometric Constraints in Optimization}
+\author{Benjamin J. Brelje}
+\lhead{Benjamin J.~Brelje}
+\chead{EECS587 Term Project}
+\rhead{\today}
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\qquad In aerospace engineering, particularly in commercial aviation, reducing cost and environmental impact is a major research focus.
+My lab, the Multidisciplinary Design Optimization Lab (MDOLab), uses numerical optimization and computer simulation to create aircraft designs with minimum fuel consumption.
+The output of one of our optimizations is an aircraft geometry file.
+
+\qquad Previous graduate research resulted in efficient, massively parallel flow solvers and structural analysis tools.
+These tools allow us to assess the weight and drag of a particular geometry.
+The optimizer will run many of these aerostructural analyses until it converges on the optimal design.
+
+\qquad Another important aspect of aircraft design is geometric constraints.
+An example of a geometric constraint is that the aircraft must have enough volume in the wing for the mission's required fuel.
+The focus of my research is making realistic geometric constraints easier to impose on our optimization problems.
+In my previous work, I developed a Python package called \texttt{geograd} to compute the value of my new geometric constraints during optimization.
+\texttt{Geograd} uses Tensorflow, a framework designed for machine learning, to compute my constraint in a pure SIMD fashion.
+It was very fast when running on the GPU on my local machine, but we do not have access to GPU resources on our usual compute clusters.
+The purpose of this term project is to greatly improve the performance of \texttt{geograd} by writing a brand-new, Fortran 90 implementation to take advantage of algorithm opportunities that cannot be posed in Tensorflow's SIMD language.
+
+\qquad The first section will describe the specific computation in more detail and the current state of the software.
+Second, I will describe a test case I constructed for my timings and benchmarking.
+Following that, I will describe the development and verification of my baseline Fortran code.
+Next, I will walk through each improvement I made to the algorithm and describe the dynamic load balancing problem that emerged during this stem.
+Finally, I will describe the dynamic load balancing approach I used and present the final timings.
+
+\qquad I was ultimately able to achieve over a 1350x speedup on my benchmark case compared to my original Tensorflow-based pure SIMD implementation. 
+
+\section{Description of the Computation and Previous Work}
+In numerical optimization, algorithms are designed to minimize some objective function $f(\textbf{x})$ by varying $\textbf{x}$ (a vector of design variables)
+subject to $\textbf{g}(\textbf{x}) \leq 0$ (a vector of constraint values).
+In aircraft optimization:
+\begin{itemize}
+ \item $f(\textbf{x})$ is generally fuel burn for a given mission
+ \item $\textbf{x}$ are geometric parameters like wingspan, wing sweepback angle, and local thickness control points
+ \item $\textbf{g}(\textbf{x})$ includes structural stress limits, stall speed requirements, and other requirements.
+\end{itemize}
+My research goal is to define a mathematical formulation for a component of $\textbf{g}$ which accounts for geometric constraints due to packing.
+Notionally, my constraint $\textbf{g} \leq 0$ when the item I need to package fits entirely within the outer envelope of the airplane.
+
+\qquad Our lab uses \emph{gradient-based} optimization because we have many (hundreds) of design variables $\textbf{x}$. 
+Optimization algorithms which use gradient information are computationally cheaper than gradient-free methods on large-scale problems like ours.
+When I say \emph{gradient information}, I am referring to the derivatives of the objective and constraints with respect to the design variables, namely:
+
+\begin{equation}
+    \frac{df(\textbf{x})}{d\textbf{x}}
+\end{equation}
+
+\begin{equation}
+    \frac{d\textbf{g}(\textbf{x})}{d\textbf{x}}
+\end{equation}
+
+\qquad While gradient-based methods require orders of magnitude fewer function evaluations on large-scale problems, they require the researcher to define computational methods which include both function values and derivatives.
+They also introduce requirements on the general behavior and smoothness of the functions.
+Obviously, $f$ and $\textbf{g}$ must be once-differentiable.
+Gradient-based methods perform best when $f$ and $\textbf{g}$ are deterministic.
+Ideally, $f$ and $\textbf{g}$ are also $C^1$ continuous (smooth values and first derivatives), though adequate results can also be obtained with $C^0$ continuous functions (smooth values only) in some cases.
+
+\qquad During the course of my research, I identified a mathematical formulation for a geometric constraint which meets these requirements.
+We begin with triangulated representations of aircraft outer surface $A$ and an inner object $B$ to pack inside it, as pictured in Figure~\ref{fig:schematic}. 
+$A$ and $B$ are each represented as lists of vertices $V_0$, $V_1$, $V_2$ of dimension 3 by $m$ or $n$ (the size of each mesh).
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.45\linewidth]{figures/schematic}
+  % \vspace{-30pt}
+  \caption{A section view of an object $B$ inside wing $A$ and the minimum distance $d_\text{min}$ between them}
+  \label{fig:schematic}
+\end{figure}
+
+When one object encloses another, the minimum distance $d_\text{min}$ between them is greater than zero by some margin.
+Therefore, a first approach to a geometric constraint might involve computing $d_\text{min,AB} \geq 0 + \text{tol}$.
+We can compute $d_\text{min}$ between two triangulated surfaces by computing the minimum distance between each individual pair of triangles.
+
+\begin{equation}
+  \label{eq:dmin}
+  d_\text{min,AB} = \text{min}(d_{\text{min},ij}) \text{ for each triangle } i, \, j \text{ in surfaces } A, \, B
+\end{equation}
+
+The minimum distance between a pair of triangles can be found by a total of fifteen primitive tests between the vertices: six point-triangle tests, and nine line-line tests. % TODO cite ericson
+
+\begin{equation}
+  d_{\text{min},ij} = \text{min}(d_{\text{min},k}) \text{ for primitive test }k\text{1 to 15}
+\end{equation}
+
+The distances are then aggregated into a single scalar and constrained for feasibility using the alternate form of the Kresselmeier-Steinhauser (KS) function ~\ref{ks_geom}.
+\begin{equation}
+  \label{ks_geom}
+  KS_\text{geom}(\textbf{x}) = \frac{1}{\rho} \textrm{ln} \Bigg[\sum_{j=1}^{J} e^{\rho\big(d_\text{min}\:(\textbf{x})-d_j\:(\textbf{x})\big)}\Bigg] - d_\text{min}\:(\textbf{x}) \leq 0 ,
+\end{equation}
+
+where $\textbf{x}$ is a vector of design variables,
+$d_j(\textbf{x})$ is the $j\textrm{th}$ pairwise distance between $A$ and $B$,
+$d_{min}(\textbf{x})$ is the minimum distance between $A$ and $B$, and
+$\rho$ is a user-controllable constant.
+
+\end{document}

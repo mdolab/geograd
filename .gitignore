@@ -3,3 +3,7 @@
 *.o
 *.msg
 *_complex.F90
+paper.*
+*.bib
+!eecs587.bib
+!paper.tex
