@@ -77,7 +77,7 @@ Following that, I will describe the development and verification of my baseline 
 Next, I will walk through each improvement I made to the algorithm and describe the dynamic load balancing problem that emerged during this stem.
 Finally, I will describe the dynamic load balancing approach I used and present the final timings.
 
-\qquad I was ultimately able to achieve over a 1350x speedup on my benchmark case compared to my original Tensorflow-based pure SIMD implementation. 
+\qquad I was ultimately able to achieve over a 1350x speedup on my benchmark case compared to my original Tensorflow-based pure SIMD implementation.
 
 \section{Description of the Computation and Previous Work}
 In numerical optimization, algorithms are designed to minimize some objective function $f(\textbf{x})$ by varying $\textbf{x}$ (a vector of design variables)
@@ -91,7 +91,7 @@ In aircraft optimization:
 My research goal is to define a mathematical formulation for a component of $\textbf{g}$ which accounts for geometric constraints due to packing.
 Notionally, my constraint $\textbf{g} \leq 0$ when the item I need to package fits entirely within the outer envelope of the airplane.
 
-\qquad Our lab uses \emph{gradient-based} optimization because we have many (hundreds) of design variables $\textbf{x}$. 
+\qquad Our lab uses \emph{gradient-based} optimization because we have many (hundreds) of design variables $\textbf{x}$.
 Optimization algorithms which use gradient information are computationally cheaper than gradient-free methods on large-scale problems like ours.
 When I say \emph{gradient information}, I am referring to the derivatives of the objective and constraints with respect to the design variables, namely:
 
@@ -110,7 +110,7 @@ Gradient-based methods perform best when $f$ and $\textbf{g}$ are deterministic.
 Ideally, $f$ and $\textbf{g}$ are also $C^1$ continuous (smooth values and first derivatives), though adequate results can also be obtained with $C^0$ continuous functions (smooth values only) in some cases.
 
 \qquad During the course of my research, I identified a mathematical formulation for a geometric constraint which meets these requirements.
-We begin with triangulated representations of aircraft outer surface $A$ and an inner object $B$ to pack inside it, as pictured in Figure~\ref{fig:schematic}. 
+We begin with triangulated representations of aircraft outer surface $A$ and an inner object $B$ to pack inside it, as pictured in Figure~\ref{fig:schematic}.
 $A$ and $B$ are each represented as lists of vertices $V_0$, $V_1$, $V_2$ of dimension 3 by $m$ or $n$ (the size of each mesh).
 
 \begin{figure}[ht]
@@ -124,27 +124,27 @@ $A$ and $B$ are each represented as lists of vertices $V_0$, $V_1$, $V_2$ of dim
 When one object encloses another, the minimum distance $d_\text{min}$ between them is greater than zero by some margin.
 Therefore, a first approach to a geometric constraint might involve computing $d_\text{min,AB} \geq 0 + \text{tol}$.
 We can compute $d_\text{min}$ between two triangulated surfaces by computing the minimum distance between each individual pair of triangles.
+The minimum distance between a pair of triangles can be found by a total of fifteen primitive tests between the vertices: six point-triangle tests, and nine line-line tests. % TODO cite ericson
 
 \begin{equation}
   \label{eq:dmin}
   d_\text{min,AB} = \text{min}(d_{\text{min},ij}) \text{ for each triangle } i, \, j \text{ in surfaces } A, \, B
 \end{equation}
 
-The minimum distance between a pair of triangles can be found by a total of fifteen primitive tests between the vertices: six point-triangle tests, and nine line-line tests. % TODO cite ericson
+During optimization, the pair of facets comprising the minimum distance can change rapidly, leading to discontinuities in the gradients and poor optimizer performance.
+Notionally, we want to gather information not only from the exactly closest triangles, but also from the triangles that are nearly closest.
+We can achieve this by using a strategy called constraint aggregation.
+I used a function called the Kreisselmeier-Steinhauser (KS) function which essentially provides a conservative estimate of the extremum of a vector.
+The computation is as follows:
 
-\begin{equation}
-  d_{\text{min},ij} = \text{min}(d_{\text{min},k}) \text{ for primitive test }k\text{1 to 15}
-\end{equation}
-
-The distances are then aggregated into a single scalar and constrained for feasibility using the alternate form of the Kresselmeier-Steinhauser (KS) function ~\ref{ks_geom}.
 \begin{equation}
   \label{ks_geom}
-  KS_\text{geom}(\textbf{x}) = \frac{1}{\rho} \textrm{ln} \Bigg[\sum_{j=1}^{J} e^{\rho\big(d_\text{min}\:(\textbf{x})-d_j\:(\textbf{x})\big)}\Bigg] - d_\text{min}\:(\textbf{x}) \leq 0 ,
+  KS_\text{geom}(\textbf{x}) = \frac{1}{\rho} \textrm{ln} \Bigg[\sum_{i,j=1}^{m,n} e^{\rho\big(d_\text{min}\:(\textbf{x})-d_{ij}\:(\textbf{x})\big)}\Bigg] - d_\text{min}\:(\textbf{x}) \leq 0 ,
 \end{equation}
 
 where $\textbf{x}$ is a vector of design variables,
-$d_j(\textbf{x})$ is the $j\textrm{th}$ pairwise distance between $A$ and $B$,
-$d_{min}(\textbf{x})$ is the minimum distance between $A$ and $B$, and
+$d_{ij}(\textbf{x})$ is the pairwise distance between the $i$th facet of $A$ and $j$th facet of $B$,
+$d_{min}(\textbf{x})$ is the minimum distance between $A$ and $B$ at the current design point, and
 $\rho$ is a user-controllable constant.
 
 \end{document}
