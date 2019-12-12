@@ -60,6 +60,14 @@
 \qquad In aerospace engineering, particularly in commercial aviation, reducing cost and environmental impact is a major research focus.
 My lab, the Multidisciplinary Design Optimization Lab (MDOLab), uses numerical optimization and computer simulation to create aircraft designs with minimum fuel consumption.
 The output of one of our optimizations is an aircraft geometry file.
+Figure~\ref{fig:optimized} shows an optimized wing result from my own published research.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.45\linewidth]{figures/wing_final_rect.png}
+  \caption{Wing containing an electric battery, optimized for maximum aircraft range~\cite{Brelje2019c}}
+  \label{fig:optimized}
+\end{figure}
 
 \qquad Previous graduate research resulted in efficient, massively parallel flow solvers and structural analysis tools.
 These tools allow us to assess the weight and drag of a particular geometry.
@@ -79,7 +87,7 @@ Following that, I will describe the development and verification of my baseline 
 Next, I will walk through each improvement I made to the algorithm and describe the dynamic load balancing problem that emerged during this step.
 Finally, I will describe the dynamic load balancing approach I used and present the final timings.
 
-\qquad I was ultimately able to achieve over a 1350x speedup on my benchmark case compared to my original Tensorflow-based pure SIMD implementation.
+\qquad I was ultimately able to achieve over a \textbf{1350x} speedup on my benchmark case compared to my original Tensorflow-based pure SIMD implementation.
 
 \section{Description of the Computation and Previous Work}
 In numerical optimization, algorithms are designed to minimize some objective function $f(\textbf{x})$ by varying $\textbf{x}$ (a vector of design variables)
@@ -117,7 +125,7 @@ $r$ and $s$ are each represented as lists of vertices $\textbf{A}$, $\textbf{B}$
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.45\linewidth]{figures/schematic}
+  \includegraphics[width=0.63\linewidth]{figures/schematic}
   % \vspace{-30pt}
   \caption{A section view of an object $s$ inside wing $r$ and the minimum distance $d_\text{min}$ between them}
   \label{fig:schematic}
@@ -126,7 +134,7 @@ $r$ and $s$ are each represented as lists of vertices $\textbf{A}$, $\textbf{B}$
 \qquad When one object encloses another, the minimum distance $d_\text{min}$ between them is greater than zero by some margin.
 Therefore, a first approach to a geometric constraint might involve computing $d_\text{min,rs} \geq 0 + \text{tol}$.
 We can compute $d_\text{min}$ between two triangulated surfaces by computing the minimum distance between each individual pair of triangles.
-The minimum distance between a pair of triangles can be found by a total of fifteen primitive tests between the vertices: six point-triangle tests, and nine line-line tests (Figure~\ref{fig:primitives}). % TODO cite ericson
+The minimum distance between a pair of triangles can be found by a total of fifteen primitive tests between the vertices: six point-triangle tests, and nine line-line tests (Figure~\ref{fig:primitives})~\cite{Ericson:2004:RCD:1121584}.
 
 \begin{equation}
   \label{eq:dmin}
@@ -166,14 +174,14 @@ $d_{min}(\textbf{x})$ is the minimum distance between $r$ and $s$ at the current
 $\rho$ is a user-controllable constant.
 Strictly speaking, $d_{ij}$ is a function of the surface mesh points of $r$ and $s$, not the design variables $\textbf{x}$ directly.
 
-\qquad Last year, I implemented the computation of Equation~\ref{ks_geom} using the Tensorflow framework. % cite tensorflow
+\qquad Last year, I implemented the computation of Equation~\ref{ks_geom} using the Tensorflow framework~\cite{tensorflow2015-whitepaper}. % cite tensorflow
 Tensorflow is a Python package designed for machine learning, originally developed by Google.
 Tensorflow uses a graph representation of a series of array operations and computes a result in a SIMD fashion.
 Since many machine learning workflows require gradients for training purposes, Tensorflow natively supports analytic reverse-mode derivatives, making it ideal for use in gradient-based optimization.
 Tensorflow also supports heterogeneous computer architectures, including GPU acceleration.
 I found that I could run the calculation almost instantaneously on the GPU of my desktop machine.
 
-\qquad I used my implementation, which I call \emph{geograd} (for ``\emph{geo}metric constraints with \emph{grad}ients''), for several published optimization studies over the last 12 months. %cite scitech, aviation papers
+\qquad I used my implementation, which I call \emph{geograd} (for ``\emph{geo}metric constraints with \emph{grad}ients''), for several published optimization studies over the last 12 months~\cite{Brelje2019a,Brelje2019c}. %cite scitech, aviation papers
 To run the published optimization cases, I used the Texas Advanced Computing Center (TACC) Stampede2 cluster.
 Unfortunately, while TACC does have GPU nodes, the geometry calculation is a very small portion of the overall compute cost (which includes expensive, CPU-based fluid dynamics calculations).
 Therefore, it did not make economic sense to reserve GPU nodes just for the geometry constraints since it would be idle a large percentage of the time.
@@ -239,7 +247,7 @@ I developed the code in the following general steps:
 \end{itemize}
 
 \subsection{Writing Geometric Primitives}
-\qquad I implemented the line-line and point-triangle tests as described in Ericson. % TODO cite ericson
+\qquad I implemented the line-line and point-triangle tests as described in Ericson~\cite{Ericson:2004:RCD:1121584}. % TODO cite ericson
 The subroutines, contianed in \texttt{triangles.F90} take four three-dimensional points as input and return the minimum distance.
 The sequence of control flow is designed to exit early in some common cases, deferring the least likely paths until as late as possible.
 I also developed unit tests using triangles in prescribed configurations to exercise each of the branches of the mathematics.
@@ -269,7 +277,7 @@ The subroutine returns:
   \item $d_\text{min}$: minimum distance between the two surfaces
 \end{itemize}
 
-The major advantage that this Fortran implementation has over Tensorflow is data reuse.
+\qquad The major advantage that this Fortran implementation has over Tensorflow is data reuse.
 Tensorflow computes each array operation in a pairwise fashion sequentially.
 Every entry in each array is read one time per array operation, and one write is performed per array operation.
 This should result in a bad compute-to-memory access ratio.
@@ -277,12 +285,12 @@ In the Fortran implementation, each pair of triangles is read from the global ar
 Subsequently, all the primitive tests and summation is performed on local copies which should easily fit in the L1 cache.
 This should result in a major speedup over the Tensorflow implementation by itself.
 
-I was careful to ensure sequential memory access by arranging the array order correctly.
+\qquad I was careful to ensure sequential memory access by arranging the array order correctly.
 Fortran uses column-major order, so I used the spatial dimensions $x,y,z$ as the first array dimension, and triangle count $i,j$ as the second dimension.
 This results in coalesced memory access when individual vertices are read from the global arrays.
 However, for the purposes of visualization in this paper, I illustrate the transpose of the matrix, with each row comprising a triangle.
 
-I also wrote a function \texttt{compute\_derivs} which additionally computes the following derivatives with respect to the surface mesh points (all $m$ by 3 arrays):
+\qquad I also wrote a function \texttt{compute\_derivs} which additionally computes the following derivatives with respect to the surface mesh points (all $m$ by 3 arrays):
 
 \begin{equation}
   \frac{dKS}{d\textbf{A}_r} \, \, \, \, \, \, \frac{dKS}{d\textbf{B}_r} \, \, \, \, \, \, \frac{dKS}{d\textbf{C}_r}
@@ -372,7 +380,7 @@ Here are the assumptions and requirements for the parallelization:
   \item Each process must end up with a full copy of both the KS value and all the derivative arrays
   \item The $p$ processors will be provisioned such that $p >> m, n$
 \end{itemize}
-We divide up the problem along the $r$ mesh only.
+\qquad We divide up the problem along the $r$ mesh only.
 Each processor is given a range of rows in the $r$ mesh arrays to compute against all of the $s$ triangles.
 Figure~\ref{fig:parallel} shows the parallelized arrangement.
 First, an owner-computes approach is used to compute the summation of the KS function.
@@ -390,18 +398,19 @@ The $r$ mesh is simply concatenated and sent to all using the MPI Allgather subr
 \end{figure}
 
 \subsection{Timing the Baseline}
-I ran the \texttt{geograd} (Tensorflow-based) implementation and my new Fortran implementation on the benchmark problem described in Section~\ref{sec:benchmark} using 4 to 48 cores of a compute node on the TACC Stampede2 cluster.
+\qquad I ran the \texttt{geograd} (Tensorflow-based) implementation and my new Fortran implementation on the benchmark problem described in Section~\ref{sec:benchmark} using 4 to 48 cores of a compute node on the TACC Stampede2 cluster.
+All code was compiled using the Intel Fortran compiler with maximum optimization, and Intel MPI.
 Unless otherwise specified in the report, I give timings and speedups for the 48-core case.
 The Tensorflow-based benchmark took 20s to run analysis only, and 38s for derivatives.
 My new Fortran-based benchmark took 0.371s for analysis only (\textbf{53x} speedup), and 1.93s for derivatives (\textbf{19x} speedup).
 These were extremely promising results, and I had not yet implemented any of the algorithm improvements.
 
 \section{Algorithm Improvements}
-Because Tensorflow does not support control flow (at least, not in a form which reduces computation for unused branches), there is great opportunity to gain speed by improving the algorithm.
+\qquad Because Tensorflow does not support control flow (at least, not in a form which reduces computation for unused branches), there is great opportunity to gain speed by improving the algorithm.
 In this section I describe the improvements and report speedup relative to the previous iteration (not cumulative versus the original Tensorflow implementation).
 
 \subsection{Minimum instead of Sum of the 15 Triangle Tests}
-Recall the 6 point-triangle and 9 line-line tests performed for each pair $i,j$ of triangles, as shown in Figure~\ref{fig:primitives}.
+\qquad Recall the 6 point-triangle and 9 line-line tests performed for each pair $i,j$ of triangles, as shown in Figure~\ref{fig:primitives}.
 In Tensorflow, there is no computational advantage to taking the minimum value of the 15 pairwise primitive tests, so I sum the KS results instead.
 However, in Fortran, I can eliminate 14 of the 15 derivative calls by taking the minimum instead of the sum.
 I added a case control flow structure to only run the derivative subroutine for the most critical primitive.
@@ -409,18 +418,18 @@ This had only a modest effect on the analysis-only benchmark (\textbf{1.1x} spee
 This optimization remains an exactly correct expression of Equation~\ref{ks_geom}.
 
 \subsection{Bounding Box Testing}
-If a pair of triangles is far away from each other, it is possible to prove cheaply that their interaction is not important.
+\qquad If a pair of triangles is far away from each other, it is possible to prove cheaply that their interaction is not important.
 We can accomplish this through \emph{bounding box} testing.
 Let's draw an axis-aligned bounding box around the inner object $s$ as pictured in Figure~\ref{fig:bb-test}.
 Let us also define some tolerance value (say, the maximum dimension of $s$ in any dimension).
 If the bounding box around triangle $j$ is more than $tol$ away from the bounding box of $s$, then we can guarantee that the minimum distance between them is at least $tol$.
 We can then replace a potentially large number of $d_{ij}$ computations with $d_{ij}=tol$.
 
-Computing bounding box tests is much cheaper than computing $d_{ij}$ using the subroutines.
+\qquad Computing bounding box tests is much cheaper than computing $d_{ij}$ using the subroutines.
 The bounding box test is simply several min/max operations on each triangle $j$, plus a few floating point comparisons.
 Since aircraft geometry predominantly varies in the wingspan direction, we can exclude a huge number of triangles with just one or two comparisons (by placing the $x$ axis tests first in the sequence).
 
-I implemented the bounding box test using the heuristic $tol$ setting of $max(x_{max}-x_{min},\,y_{max}-y_{min},\,z_{max}-z_{min}$ and re-ran the benchmark cases.
+\qquad I implemented the bounding box test using the heuristic $tol$ setting of $max(x_{max}-x_{min},\,y_{max}-y_{min},\,z_{max}-z_{min})$ and re-ran the benchmark cases.
 The derivative benchmark gained an additional \textbf{3.4x} speedup compared to the previous optimization.
 
 \begin{figure}[ht]
@@ -431,7 +440,7 @@ The derivative benchmark gained an additional \textbf{3.4x} speedup compared to 
 \end{figure}
 
 \section{Dynamic Load Balancing}
-While the baseline Fortran implementation and the ``min of fifteen'' optimization had good load balancing (utilization above 95\% with 4 processors; above 65\% with 48 processors), the bounding box test absolutely ruined the load balancing.
+\qquad While the baseline Fortran implementation and the ``min of fifteen'' optimization had good load balancing (utilization above 95\% with 4 processors; above 65\% with 48 processors), the bounding box test absolutely ruined the load balancing.
 The reason for this is spatial correlation in the lists of mesh vertices.
 Consider the aircraft geometry pictured above.
 A mesh representation might include all of the ``left wing'' triangles in the first quarter of the list, or it may be completely random (there are no guarantees).
@@ -439,14 +448,14 @@ A bounding box test excludes triangles that are far from the present position of
 Therefore, if $s$ is in the right wing, the processor which is assigned all of the left wing facets may have zero triangles to compute.
 Furthermore, as $s$ and $r$ deform and move during optimization, the load imbalance will change from processor to processor.
 
-I measured this using the benchmarking case.
+\qquad I measured this using the benchmarking case.
 After implementing the bounding box test, my processor utilization across 48 MPI processes decreased from the high 60\% range to less than 15\%.
 Examining the problem further, I found that one or two processors would have basically zero runtime, while the others were fully loaded.
 I verified that these low-runtime processes had most or all of their triangles excluded from expensive tests by the bounding box.
 Below, I will describe two approaches I used to solve the problem.
 
 \subsection{Global Load Balancing}
-Due to the dynamic nature of the load balancing issue, the load balancing step needs to be done on every function call.
+\qquad Due to the dynamic nature of the load balancing issue, the load balancing step needs to be done on every function call.
 As a first cut, I decided to treat the bounding box tests as negligible in cost and simply smear all of the ``active'' triangles (the ones passing the bounding-box test and requiring more expensive tests) evenly across the processors sequentially.
 Briefly, the method is as follows:
 \begin{itemize}
@@ -461,31 +470,150 @@ The structure of the problem remains as pictured in Figure~\ref{fig:parallel}, e
 I chose to ignore the potential issue of some processors having more inactive (cheap) triangles to compute than others.
 This keeps the array split indices limited in size and the split chunks contiguous in memory, which simplifies the collective operations required to get the derivatives assembled at the end.
 
-This global load balancing method was very effective.
+\qquad This global load balancing method was very effective.
 Processor utilization improved from about 11\% to 65\% (similar to the levels seen before implementing the bounding box tests).
 The remaining idleness is attributable to some point-triangle or line-line tests being more expensive to compute than others (early exits, etc.), or to OS interrupts.
 If the number of triangles per processor is high enough, load balancing improves to about 95\% (as in weak-scaling benchmark results).
 With the load balancing in place, derivatives gained another \textbf{2.6x} speedup versus the unbalanced bounding box benchmark.
 However, I noted that weak scaling seemed to suffer somewhat for this iteration.
 
-After conducting some detailed profiling, I noted that the load balancing step was increasing in time as the number of triangles increased.
+\qquad After conducting some detailed profiling, I noted that the load balancing step was increasing in time as the number of triangles increased.
 The reason was the MPI Allgather operation I used to construct the global load balancing vector.
 My reasoning for this was to save bounding box test results so they wouldn't need to be recomputed later in the main loop.
 However, it was clear that this would potentially cause poor scaling for larger problems.
 
 \subsection{Distributed Load Balancing}
-In order to eliminate the Allgather operation from the load balancing step, two changes were required.
+\qquad In order to eliminate the Allgather operation from the load balancing step, two changes were required.
 First, I had to develop a distributed scan methodology to determine where the load balancing break indices would be located, without gathering a global vector of bounding box test results.
 I was able to do this using an Allreduce operation with only as many values as processors, eliminating the weak scaling issue.
 The second change was to insert the bounding box tests back into the main KS computation loop.
 This resulted in doing some redundant bounding box tests, but they are so cheap that it barely matters.
 
-I ran the benchmark for this distributed load balancing variant and found that the processor utilization remained equally high, and that the poor weak scaling of the load balancing step had disappeared.
+\qquad I ran the benchmark for this distributed load balancing variant and found that the processor utilization remained equally high, and that the poor weak scaling of the load balancing step had disappeared.
 Distributing the load balancing accounts for only about a \textbf{1.1x} speedup compared to the global load balancing, but it eliminates a sub-optimal scaling property that could come back to bite me in the future when working with larger problems.
 
 
+\section{Performance}
+\qquad The performance of my parallel Fortran implementation of the algorithm was great compared to the Tensorflow implementation.
+Table~\ref{tab:speedup} shows that the derivative computation could be accelerated more than 500x, while analysis-only improved three orders of magnitude.
+This is a breakthrough in performance which will enable me to tackle more complex problems in my research.
+
+\qquad Table~\ref{tab:speedup} shows the relative contribution of each optimization step, both for the full derivative computation as well as for analysis only (without derivatives).
+The improved memory access pattern versus Tensorflow accounts for most of the speedup in the baseline case.
+The ``1 of 15'' optimization only really improved the derivative code, but it was a sizable speedup.
+The bounding box test, properly load balanced, accounts for one more order of magnitude speedup.
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{lll}
+                                              & \multicolumn{2}{c}{Speedup vs Tensorflow}                     \\
+  \textbf{Derivatives}                        & \multicolumn{1}{c}{Cumulative} & \multicolumn{1}{c}{Relative} \\ \cline{2-3}
+  \multicolumn{1}{l|}{Baseline}               & 19.7                           & 19.7                         \\
+  \multicolumn{1}{l|}{1 of 15}                & 63.9                           & 3.2                          \\
+  \multicolumn{1}{l|}{Bounding Box}           & 217.5                          & 3.4                          \\
+  \multicolumn{1}{l|}{Balanced Bounding Box}            & 563.8                          & 2.6                          \\
+  \multicolumn{1}{l|}{}                       &                                &                              \\
+  \multicolumn{1}{l|}{\textbf{Analysis Only}} &                                &                              \\
+  \multicolumn{1}{l|}{Baseline}               & 53.9                           & 53.9                         \\
+  \multicolumn{1}{l|}{1 of 15}                & 59.3                           & 1.1                          \\
+  \multicolumn{1}{l|}{Balanced Bounding Box}  & 1254.7                         & 21.1                         \\
+  \multicolumn{1}{l|}{Distributed LB BB}                & 1388.9                         & 1.1
+  \end{tabular}
+\caption{Speedup on 48 processors versus the original Tensorflow implementation}
+\label{tab:speedup}
+
+    \end{table}
+
+\qquad The scaling studies were mixed.
+Because the derivative code has to do a large allgather and allreduce to assemble the derivative output, there is no way that perfect strong or weak scaling can be achieved.
+We have more hope for the analysis-only code which has a scalar allreduce in the middle.
+Unfortunately we saw a steep drop off in strong and weak scaling for the derivative code.
+Table~\ref{tab:strongscaling} shows that efficiency drops to only 17\% for the largest case.
+For this number of processors, the collective operations take almost as much time as the actual loop work.
+On the other hand, the analysis-only routine scales reasonably well.
+At 48 processors, the amount of work per processor starts to get pretty small and the chunks of work are not large enough to hide jitter and differences in work due to control flow and general ``luck''.
+We saw this as a drop in processor utilization from 95\% to about 65\%.
+This accounts for most of the loss of efficiency - it is not due to communication overhead.
+
+\qquad We would expect better weak scaling for the analysis-only code due to little collective communication, and that turns out to be correct.
+Table~\ref{tab:weakscaling} shows that the weak scaling efficiency for both codes is pretty good.
+Weak scaling is better for the analysis-only code due to less collective communication.
+We see a modest improvement in weak scaling efficiency due to the distributed load balancing, particularly for the analysis-only case.
+The load-balancing time in these studies is basically zero and I confirmed high processor utilization across all the cases, so the only reason I can think of for imperfect and decreasing weak scaling is OS interrupts or potentially the instrumentation I inserted to collect run time data (which uses some collectives by necessity).
+
+\begin{table}[!hbt]
+  \centering
+  \begin{tabular}{llllll}
+  \textbf{Derivatives}                                & \multicolumn{5}{l}{all results are wall time in s} \\
+  \textit{Number of processors}                       & 48       & 24       & 16      & 9       & 4        \\ \cline{2-6}
+  \multicolumn{1}{l|}{Tensorflow}                     & 38       &          &         &         &          \\
+  \multicolumn{1}{l|}{Baseline}                       & 1.925    & 3.121    & 4.430   & 7.823   & 17.111   \\
+  \multicolumn{1}{l|}{1 of 15}                        & 0.595    & 0.783    & 1.089   & 1.905   & 3.953    \\
+  \multicolumn{1}{l|}{Bounding Box}                     & 0.175    & 0.169    & 0.175   & 0.224   & 0.282    \\
+  \multicolumn{1}{l|}{Balanced Bounding Box}                    & 0.067    & 0.050    & 0.052   & 0.076   & 0.140    \\
+  \multicolumn{1}{l|}{}                               &          &          &         &         &          \\
+  \multicolumn{1}{l|}{Best strong scaling efficiency} & 17\%     & 46\%     & 67\%    & 82\%    & 100\%    \\
+                                                      &          &          &         &         &          \\
+  \textbf{Analysis only}                              & \multicolumn{5}{l}{} \\
+  \textit{Number of processors}                       & 48       & 24       & 16      & 9       & 4        \\ \cline{2-6}
+  \multicolumn{1}{l|}{Tensorflow}                     & 20       &          &         &         &          \\
+  \multicolumn{1}{l|}{Baseline}                       & 0.371    & 0.634    & 0.991   & 1.567   & 3.399    \\
+  \multicolumn{1}{l|}{1 of 15}                        & 0.337    & 0.577    & 0.885   & 1.426   & 3.026    \\
+  \multicolumn{1}{l|}{Balanced Bounding Box}                    & 0.016    & 0.022    & 0.028   & 0.047   & 0.098    \\
+  \multicolumn{1}{l|}{Distributed LB BB}                        & 0.014    & 0.021    & 0.029   & 0.046   & 0.097    \\
+  \multicolumn{1}{l|}{}                               &          &          &         &         &          \\
+  \multicolumn{1}{l|}{Best strong scaling efficiency} & 56\%     & 76\%     & 85\%    & 94\%    & 100\%    \\
+                                                      &          &          &         &         &
+  \end{tabular}
+  \caption{Strong scaling results for various optimization levels}
+  \label{tab:strongscaling}
+
+\end{table}
 
 
 
+  \begin{table}[]
+    \centering
+    \begin{tabular}{llllll}
+    \textbf{Derivatives}                                      & 48    & 24    & 16    & 9     & 4      \\ \cline{2-6}
+    \multicolumn{1}{l|}{Global load balancing (time, s)}      & 0.347 & 0.200 & 0.169 & 0.152 & 0.137  \\
+    \multicolumn{1}{l|}{Weak scaling efficiency}              & 39.4\%& 68.3\%& 80.8\%& 89.7\%& 100.0\%\\
+    \multicolumn{1}{l|}{Distributed load balancing (time, s)} & 0.332 & 0.199 & 0.169 & 0.152 & 0.141  \\
+    \multicolumn{1}{l|}{Weak scaling efficiency}              & 42.4\%& 70.6\%& 83.4\%& 92.6\%& 100.0\%\\
+    \multicolumn{1}{l|}{}                                     &       &       &       &       &        \\
+    \multicolumn{1}{l|}{\textbf{Analysis only}}               & 48    & 24    & 16    & 9     & 4      \\
+    \multicolumn{1}{l|}{Global load balancing (time, s)}      & 0.138 & 0.111 & 0.102 & 0.101 & 0.098  \\
+    \multicolumn{1}{l|}{Weak scaling efficiency}              & 71.3\%& 88.7\%& 96.3\%& 97.5\%& 100.0\%\\
+    \multicolumn{1}{l|}{Distributed load balancing (time, s)} & 0.127 & 0.110 & 0.103 & 0.100 & 0.098  \\
+    \multicolumn{1}{l|}{Weak scaling efficiency}              & 77.7\%& 89.8\%& 95.7\%& 98.0\%& 100.0\%
+  \end{tabular}
+  \caption{Weak scaling results for various optimization levels}
+    \label{tab:weakscaling}
+\end{table}
+
+
+\subsection{Future Improvement Ideas}
+\qquad I am more than satisfied with the performance of the code, which is scalable enough for our purposes and certainly fast enough.
+However, I have two ideas to improve scaling for the derivative code.
+First, I need to alleviate the requirement for allgathering and allreducing the huge Jacobian arrays onto each process which will inevitably harm both strong and weak scaling.
+If I can pass in the smaller array $d\textbf{A}/d\textbf{x}$ from outside, I can compute the product inside the Fortran routine and allgather / allreduce a much smaller number of entries of $dKS/d\textbf{x}$.
+This should improve both strong and weak scaling for the derivatives code.
+
+\qquad Second, I can increase the amount of serial work done per processor depending on the design problem.
+My plan for the work is to optimize aircraft geometries which pack dozens or hundreds of inner objects inside.
+In that case, I can create a manager-worker system to allocate one (or maybe a few) processors per object.
+This will reduce the number of allreduce operations that are required to assemble the derivatives and increase processor utilization by increasing the size of the average work chunk.
+
+\section{Conclusion}
+\qquad I demonstrated the design, development, verification, and testing of a Fortran-based geometry constraint code for gradient-based optimization.
+The code has a complex build process involving algorithmic differentiation, complex step derivative verification, and a Python-Fortran interface.
+Through careful memory access design, a 50x speedup was achieved compared to the already well-designed Tensorflow implementation.
+Subsequent algorithm improvements in the Fortran code increased the speedup to as much as 1350x.
+Changes to the algorithm introduced a dynamic load balancing problem, which was solved using a scalable load balancing mechanism.
+Strong and weak scaling were good for the analyis-only code, but suffered for the derivative code due to required collective communication.
+Future work could alleviate software interface constraints and reduce the scaling penalty on the derivative code by reducing collective communication substantially.
+
+\section{Acknowledgements}
+Compute resource for this project was funded under NSF XSEDE allocation TG-DDM140001.
 
 \end{document}
