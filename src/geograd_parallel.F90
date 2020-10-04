@@ -308,7 +308,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
            if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
                              obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                ! do not bother computing the actual pairwise tests. Add a conservative estimate
-               base_exp_accumulator_local = base_exp_accumulator_local + exp(-obj_tol*rho)*15
+               base_exp_accumulator_local = base_exp_accumulator_local + exp(-obj_tol*rho)
            else                
                do tri_ind_2 = 1, n2
                    ! do 9 line-line comparison tests and derivatives
@@ -336,6 +336,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
                    call point_tri(A2batch, B2batch, C2batch, A1batch, distance_vec(13))
                    call point_tri(A2batch, B2batch, C2batch, B1batch, distance_vec(14))
                    call point_tri(A2batch, B2batch, C2batch, C1batch, distance_vec(15))
+                   
                    call minval_and_loc(distance_vec, 15, d, minloc_index)
                    call compare_and_swap_minimum(cur_min_dist, d)
 
@@ -372,7 +373,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
                    ! do 6 point-triangle comparison tests
                     case (10)
                         call point_tri_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
-                                         A2batch, dA2, garbage, rev_seed)    
+                                         A2batch, dA2, garbage, rev_seed)
                     case (11)
                         call point_tri_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
                                          B2batch, dB2, garbage, rev_seed)
@@ -390,9 +391,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
                                          C1batch, dC1, garbage, rev_seed)
                     END select
 
-
-                    ! dist_subtract_temp = mindist_in - distance_vec
-                    base_exp_temp = exp((mindist_in - d)*rho)*15
+                    base_exp_temp = exp((mindist_in - d)*rho)
                     base_exp_accumulator_local = base_exp_accumulator_local + base_exp_temp
                     sumdA1 = -dA1*base_exp_temp
                     sumdB1 = -dB1*base_exp_temp
@@ -400,6 +399,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
                     sumdA2 = -dA2*base_exp_temp
                     sumdB2 = -dB2*base_exp_temp
                     sumdC2 = -dC2*base_exp_temp
+
                     dKSdA1_local(:, tri_ind_1_local) = dKSdA1_local(:, tri_ind_1_local) + sumdA1
                     dKSdB1_local(:, tri_ind_1_local) = dKSdB1_local(:, tri_ind_1_local) + sumdB1
                     dKSdC1_local(:, tri_ind_1_local) = dKSdC1_local(:, tri_ind_1_local) + sumdC1
@@ -608,7 +608,7 @@ end subroutine compute_derivs
                 if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
                                   obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                     ! do not bother computing the actual pairwise tests. Add a conservative estimate
-                    ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)*15
+                    ks_accumulator_local = ks_accumulator_local + exp(-obj_tol*rho)
                 else
                     do tri_ind_2 = 1, n2
                         ! do 9 line-line comparison tests
@@ -640,7 +640,7 @@ end subroutine compute_derivs
                         if (mindist_in /= second_pass_flag) then
                         ! compute KS function on second pass only
                         !    ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
-                            ks_accumulator_local = ks_accumulator_local + 15 * exp((mindist_in - d)*rho)
+                            ks_accumulator_local = ks_accumulator_local + exp((mindist_in - d)*rho)
                             ! compute the intersection on second pass only
                             call intersect(A1batch, B1batch, C1batch, &
                             A2batch, B2batch, C2batch, intersect_temp)

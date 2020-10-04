@@ -272,7 +272,7 @@ class MinDistSTLTestCase1(unittest.TestCase):
         self.assertAlmostEqual(2.33166, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
         result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
-        self.assertAlmostEqual(-2.3137489765687533, result2[0], 8)
+        self.assertAlmostEqual(-2.3197215104930256, result2[0], 8)
     
     def test_derivs(self):
         # closepoint is at 40, 47
@@ -305,7 +305,7 @@ class MinDistSTLTestCase2(unittest.TestCase):
         self.assertAlmostEqual(0.0178387, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
         result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
-        self.assertAlmostEqual(-0.013197699692565058, result2[0], 8)
+        self.assertAlmostEqual(-0.013207541564420895, result2[0], 8)
 
     def test_derivs(self):
         test_derivatives_CS(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [61, 10, 87], [51, 10, 12])
@@ -335,7 +335,7 @@ class MinDistSTLTestCase3(unittest.TestCase):
         self.assertAlmostEqual(0.02212236, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
         result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300)
-        self.assertAlmostEqual(-0.015186799790516424, result2[0], 8)
+        self.assertAlmostEqual(-0.015189136030326717, result2[0], 8)
     
     def test_derivs(self):
         test_derivatives_CS(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [104, 87], [52, 2])
