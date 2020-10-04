@@ -340,5 +340,132 @@ class MinDistSTLTestCase3(unittest.TestCase):
     def test_derivs(self):
         test_derivatives_CS(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [104, 87], [52, 2])
 
+def generate_plane(vector1, vector2, start_point):
+    vertex_1 = start_point
+    vertex_2 = start_point + vector1
+    vertex_3 = start_point + vector2
+    vertex_4 = start_point + vector1 + vector2
+    p0 = np.vstack([vertex_1, vertex_1]).transpose()
+    p1 = np.vstack([vertex_2, vertex_3]).transpose()
+    p2 = np.vstack([vertex_4, vertex_4]).transpose()
+    return p0, p1, p2
+
+class BisectSphereTestCase(unittest.TestCase):
+    def test_two_cubes(self):
+        if os.path.isdir(os.getcwd()+'/tests'):
+            test_data_path = os.getcwd()+'/tests'
+        else:
+            raise IOError
+        surface_mesh_base = mesh.Mesh.from_file(test_data_path+'/25mmsphere.stl').vectors
+        smSize = surface_mesh_base[:,0,:].shape[0]
+
+        surface_mesh = surface_mesh_base.copy()
+        smp0 = surface_mesh[:,0,:].transpose()
+        smp1 = surface_mesh[:,1,:].transpose()
+        smp2 = surface_mesh[:,2,:].transpose()
+
+        objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 0]))
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+
+        custom_assert(self, result[1], np.pi*25., base_tol=5e-4)
+
+class BisectPlaneTestCase(unittest.TestCase):
+    def test_bisect_planes(self):
+        
+        objp0, objp1, objp2 = generate_plane(np.array([0., 0., 80.]), np.array([0., 80., 0.]), np.array([0.0, -40., -40]))
+        smp0, smp1, smp2 = generate_plane(np.array([0., 1.5, 0.0]), np.array([20., 0., 1.]), np.array([-10., 0.0, 0.0]))
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        custom_assert(self, result[1], 1.5, base_tol=1e-3)
+
+        smp0, smp1, smp2 = generate_plane(np.array([0., 100, 0.0]), np.array([20., 0., 1.]), np.array([-10., -50.0, 0.0]))
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        custom_assert(self, result[1], 80., base_tol=1e-3)
+
+class BisectCubeTestCase(unittest.TestCase):
+    def test_plane_cube(self):
+        if os.path.isdir(os.getcwd()+'/tests'):
+            test_data_path = os.getcwd()+'/tests'
+        else:
+            raise IOError
+        surface_mesh_base = mesh.Mesh.from_file(test_data_path+'/bigcube.stl').vectors
+        smSize = surface_mesh_base[:,0,:].shape[0]
+
+        surface_mesh = surface_mesh_base.copy()
+        smp0 = surface_mesh[:,0,:].transpose()
+        smp1 = surface_mesh[:,1,:].transpose()
+        smp2 = surface_mesh[:,2,:].transpose()
+
+        objp0, objp1, objp2 = generate_plane(np.array([0., 0., 60.]), np.array([0., 80., 0.]), np.array([0.01, -40., -40]))
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        custom_assert(self, result[1], 16., base_tol=1e-7)
+
+class OffsetCubesTestCase(unittest.TestCase):
+    def test_two_cubes(self):
+        if os.path.isdir(os.getcwd()+'/tests'):
+            test_data_path = os.getcwd()+'/tests'
+        else:
+            raise IOError
+        surface_mesh_base = mesh.Mesh.from_file(test_data_path+'/bigcube.stl').vectors
+        object_mesh_base = mesh.Mesh.from_file(test_data_path+'/littlecube.stl').vectors
+        smSize = surface_mesh_base[:,0,:].shape[0]
+        omSize = object_mesh_base[:,0,:].shape[0]
+
+        surface_mesh = surface_mesh_base.copy()
+        smp0 = surface_mesh[:,0,:].transpose()
+        smp1 = surface_mesh[:,1,:].transpose()
+        smp2 = surface_mesh[:,2,:].transpose()
+        object_mesh = object_mesh_base.copy()
+        # raise ValueError(smp0.shape)
+
+        objp0 = object_mesh[:,0,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)
+        objp1 = object_mesh[:,1,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)
+        objp2 = object_mesh[:,2,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)           
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+
+        custom_assert(self, result[1], 4*np.sqrt(2)+2*2, base_tol=1e-6)
+
+class OffsetSphereIntersectedTestCase(unittest.TestCase):
+    def test_randomly_generated_intersections(self):
+        if os.path.isdir(os.getcwd()+'/tests'):
+            test_data_path = os.getcwd()+'/tests'
+        else:
+            raise IOError
+        surface_mesh_base = mesh.Mesh.from_file(test_data_path+'/25mmspherenew.stl').vectors
+        object_mesh_base = mesh.Mesh.from_file(test_data_path+'/25mmspherenew.stl').vectors
+        smSize = surface_mesh_base[:,0,:].shape[0]
+        omSize = object_mesh_base[:,0,:].shape[0]
+
+        surface_mesh = surface_mesh_base.copy()
+        smp0 = surface_mesh[:,0,:].transpose()
+        smp1 = surface_mesh[:,1,:].transpose()
+        smp2 = surface_mesh[:,2,:].transpose()
+
+        for i in range(1):
+            
+            object_mesh = object_mesh_base.copy()
+            # generate a random unit vector direction
+            # offsetdir = np.random.uniform(-1,1,3)
+            offsetdir = np.array([0.,1.,0.])
+            # offsetdir = offsetdir / np.linalg.norm(offsetdir)
+            sphere_rad = 25 / 2
+            # offsetmagnitude = np.random.uniform(0.1, 3.0 * sphere_rad)
+            offsetmagnitude = 0.8 * sphere_rad
+            offsetvec = offsetmagnitude * offsetdir
+            offsetvec = offsetvec.reshape((3,1))
+
+            objp0 = object_mesh[:,0,:].transpose() + offsetvec
+            objp1 = object_mesh[:,1,:].transpose() + offsetvec
+            objp2 = object_mesh[:,2,:].transpose() + offsetvec            
+            result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+
+            if offsetmagnitude < 1.95 * sphere_rad:
+                # intersecting
+                exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
+                custom_assert(self, result[1], 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2), base_tol=1e-3)
+            elif offsetmagnitude > 2.0 * sphere_rad:
+                # nonintersecting
+                exact_int = 0.0
+                custom_assert(self, exact_int, result[1], base_tol=1e-3)
+
 if __name__ == '__main__':
     unittest.main()
