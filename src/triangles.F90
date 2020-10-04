@@ -1,7 +1,7 @@
 module triangles
     implicit none
-    real(kind=8) :: one = 1.0
-    real(kind=8) :: zero = 0.0
+    real(kind=8), parameter :: one = 1.0
+    real(kind=8), parameter :: zero = 0.0
     contains
 
     subroutine dot_prod(d, v, w)
@@ -242,10 +242,10 @@ module triangles
         call dot_prod(dc1, n2, c1)
         dc1 = dc1 + d2
 
-        if ((da1 > zero) .and. (db1 > zero) .and. (dc1 > zero)) then
+        if ((da1 .GE. zero) .and. (db1 .GE. zero) .and. (dc1 .GE. zero)) then
             length = 0.0
             return
-        elseif ((da1 < zero) .and. (db1 < zero) .and. (dc1 < zero)) then
+        elseif ((da1 .LE. zero) .and. (db1 .LE. zero) .and. (dc1 .LE. zero)) then
             length = 0.0
             return
         end if
@@ -262,24 +262,24 @@ module triangles
         call dot_prod(dc2, n1, c2)
         dc2 = dc2 + d1
 
-        if ((da2 > zero) .and. (db2 > zero) .and. (dc2 > zero)) then
+        if ((da2 .GE. zero) .and. (db2 .GE. zero) .and. (dc2 .GE. zero)) then
             length = 0.0
             return
-        elseif ((da2 < zero) .and. (db2 < zero) .and. (dc2 < zero)) then
+        elseif ((da2 .LE. zero) .and. (db2 .LE. zero) .and. (dc2 .LE. zero)) then
             length = 0.0
             return
         end if
 
 
         call cross_prod(d, n1, n2)
-        absd = abs(d)
-        call maxloc3(absd, maxind)
-        pa1 = a1(maxind)
-        pb1 = b1(maxind)
-        pc1 = c1(maxind)
-        !call dot_prod(pa1, d, a1)
-        !call dot_prod(pb1, d, b1)
-        !call dot_prod(pc1, d, c1)
+        ! absd = abs(d)
+        ! call maxloc3(absd, maxind)
+        ! pa1 = a1(maxind)
+        ! pb1 = b1(maxind)
+        ! pc1 = c1(maxind)
+        call dot_prod(pa1, d, a1)
+        call dot_prod(pb1, d, b1)
+        call dot_prod(pc1, d, c1)
 
         ! need to figure out which vertex is by itself
         if (da1 > 0) then
@@ -311,14 +311,9 @@ module triangles
             t12 = pb1 + (pc1 - pb1) * db1 / (db1 - dc1)
         end if
 
-
-
-        pa2 = a2(maxind)
-        pb2 = b2(maxind)
-        pc2 = c2(maxind)
-        ! call dot_prod(pa2, d, a2)
-        ! call dot_prod(pb2, d, b2)
-        ! call dot_prod(pc2, d, c2)
+        call dot_prod(pa2, d, a2)
+        call dot_prod(pb2, d, b2)
+        call dot_prod(pc2, d, c2)
 
         ! need to figure out which vertex is by itself
         if (da2 > 0) then
@@ -371,7 +366,7 @@ module triangles
             return
         else
             dt = min(t1high, t2high) - max(t1low, t2low)
-            length = dt!/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
+            length = dt/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
             return
         end if
     end subroutine intersect

@@ -242,7 +242,12 @@ module geograd
                 ! compute the intersection on second pass only
                     call intersect(A1batch, B1batch, C1batch, &
                     A2batch, B2batch, C2batch, intersect_temp)
-                    intersect_length = intersect_temp + intersect_length
+                    if(intersect_temp /= intersect_temp) then
+                        print *, 'NaN detected intersection routine'
+                        print *, 'Triangle pairs (1-index): ', tri_ind_1, tri_ind_2
+                    else 
+                        intersect_length = intersect_temp + intersect_length
+                    end if
                 end if
             end do
         end do

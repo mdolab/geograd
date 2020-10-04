@@ -3,18 +3,14 @@
 !
 MODULE TRIANGLES_DB
   IMPLICIT NONE
-  REAL(kind=8) :: one=1.0
-  REAL(kind=8) :: oned=0.0_8
-  REAL(kind=8) :: oneb=0.0_8
-  REAL(kind=8) :: zero=0.0
-  REAL(kind=8) :: zerod=0.0_8
-  REAL(kind=8) :: zerob=0.0_8
+  REAL(kind=8), PARAMETER :: one=1.0
+  REAL(kind=8), PARAMETER :: zero=0.0
 
 CONTAINS
 !  Differentiation of point_tri in forward (tangent) mode:
 !   variations   of useful results: d
-!   with respect to varying inputs: one p a b c
-!   RW status of diff variables: one:in d:out p:in a:in b:in c:in
+!   with respect to varying inputs: p a b c
+!   RW status of diff variables: d:out p:in a:in b:in c:in
   SUBROUTINE POINT_TRI_D(a, ad, b, bd, c, cd, p, pd, d, dd)
     IMPLICIT NONE
     REAL(kind=8), DIMENSION(3), INTENT(IN) :: a, b, c, p
@@ -169,8 +165,7 @@ CONTAINS
                 RETURN
               ELSE
 ! P inside face region. Compute Q through barycentric (u, v, w)
-                denomd = (oned*(va+vb+vc)-one*(vad+vbd+vcd))/(va+vb+vc)&
-&                 **2
+                denomd = -(one*(vad+vbd+vcd)/(va+vb+vc)**2)
                 denom = one/(va+vb+vc)
                 vd = vbd*denom + vb*denomd
                 v = vb*denom
@@ -199,10 +194,10 @@ CONTAINS
     END IF
   END SUBROUTINE POINT_TRI_D
 !  Differentiation of point_tri in reverse (adjoint) mode:
-!   gradient     of useful results: one d p a b c
-!   with respect to varying inputs: one d p a b c
-!   RW status of diff variables: one:incr d:in-zero p:incr a:incr
-!                b:incr c:incr
+!   gradient     of useful results: d p a b c
+!   with respect to varying inputs: d p a b c
+!   RW status of diff variables: d:in-zero p:incr a:incr b:incr
+!                c:incr
   SUBROUTINE POINT_TRI_B(a, ab0, b, bb, c, cb, p, pb, d, db)
     IMPLICIT NONE
     REAL(kind=8), DIMENSION(3), INTENT(IN) :: a, b, c, p
@@ -218,7 +213,6 @@ CONTAINS
     REAL(kind=8) :: v, vc, vb, va, w, denom
     REAL(kind=8) :: vb0, vcb, vbb, vab, wb, denomb
     INTRINSIC SQRT
-    REAL(kind=8) :: tempb6
     REAL(kind=8) :: tempb5
     REAL(kind=8) :: tempb4
     REAL(kind=8) :: tempb3
@@ -455,11 +449,9 @@ CONTAINS
                 acb = w*closepointb
                 wb = SUM(ac*closepointb)
                 denomb = vb*vb0 + vc*wb
-                tempb6 = denomb/(va+vb+vc)
-                tempb5 = -(one*tempb6/(va+vb+vc))
+                tempb5 = -(one*denomb/(va+vb+vc)**2)
                 vcb = tempb5 + denom*wb
                 vbb = tempb5 + denom*vb0
-                oneb = oneb + tempb6
                 vab = tempb5
                 d3b = 0.0_8
                 d4b = 0.0_8
@@ -608,9 +600,8 @@ CONTAINS
   END SUBROUTINE POINT_TRI
 !  Differentiation of line_line in forward (tangent) mode:
 !   variations   of useful results: d
-!   with respect to varying inputs: zero one p1 p2 q1 q2
-!   RW status of diff variables: zero:in one:in d:out p1:in p2:in
-!                q1:in q2:in
+!   with respect to varying inputs: p1 p2 q1 q2
+!   RW status of diff variables: d:out p1:in p2:in q1:in q2:in
   SUBROUTINE LINE_LINE_D(p1, p1d, q1, q1d, p2, p2d, q2, q2d, d, dd)
     IMPLICIT NONE
     REAL(kind=8), DIMENSION(3), INTENT(IN) :: p1, q1, p2, q2
@@ -652,19 +643,19 @@ CONTAINS
       RETURN
     ELSE
       IF (a .LE. eps) THEN
-        sd = zerod
         s = zero
         td = (fd*e-f*ed)/e**2
         t = f/e
-        CALL CLAMP_D(t, td, zero, zerod, one, oned)
+        CALL CLAMP_D(t, td, zero, one)
+        sd = 0.0_8
       ELSE
         CALL DOT_PROD_D(c, cd, d1, d1d, r, rd)
         IF (e .LE. eps) THEN
-          td = zerod
           t = zero
           sd = -((cd*a-c*ad)/a**2)
           s = -(c/a)
-          CALL CLAMP_D(s, sd, zero, zerod, one, oned)
+          CALL CLAMP_D(s, sd, zero, one)
+          td = 0.0_8
         ELSE
 ! General non-degenerate case
           CALL DOT_PROD_D(b, bd, d1, d1d, d2, d2d)
@@ -673,25 +664,25 @@ CONTAINS
           IF (denom .NE. zero) THEN
             sd = ((bd*f+b*fd-cd*e-c*ed)*denom-(b*f-c*e)*denomd)/denom**2
             s = (b*f-c*e)/denom
-            CALL CLAMP_D(s, sd, zero, zerod, one, oned)
+            CALL CLAMP_D(s, sd, zero, one)
           ELSE
-            sd = zerod
             s = zero
+            sd = 0.0_8
           END IF
           td = ((bd*s+b*sd+fd)*e-(b*s+f)*ed)/e**2
           t = (b*s+f)/e
           IF (t .LT. zero) THEN
-            td = zerod
             t = zero
             sd = -((cd*a-c*ad)/a**2)
             s = -(c/a)
-            CALL CLAMP_D(s, sd, zero, zerod, one, oned)
+            CALL CLAMP_D(s, sd, zero, one)
+            td = 0.0_8
           ELSE IF (t .GT. one) THEN
-            td = oned
             t = one
             sd = ((bd-cd)*a-(b-c)*ad)/a**2
             s = (b-c)/a
-            CALL CLAMP_D(s, sd, zero, zerod, one, oned)
+            CALL CLAMP_D(s, sd, zero, one)
+            td = 0.0_8
           END IF
         END IF
       END IF
@@ -714,10 +705,10 @@ CONTAINS
     END IF
   END SUBROUTINE LINE_LINE_D
 !  Differentiation of line_line in reverse (adjoint) mode:
-!   gradient     of useful results: zero one d p1 p2 q1 q2
-!   with respect to varying inputs: zero one d p1 p2 q1 q2
-!   RW status of diff variables: zero:incr one:incr d:in-zero p1:incr
-!                p2:incr q1:incr q2:incr
+!   gradient     of useful results: d p1 p2 q1 q2
+!   with respect to varying inputs: d p1 p2 q1 q2
+!   RW status of diff variables: d:in-zero p1:incr p2:incr q1:incr
+!                q2:incr
   SUBROUTINE LINE_LINE_B(p1, p1b, q1, q1b, p2, p2b, q2, q2b, d, db)
     IMPLICIT NONE
     REAL(kind=8), DIMENSION(3), INTENT(IN) :: p1, q1, p2, q2
@@ -842,42 +833,38 @@ CONTAINS
       IF (branch .LT. 2) THEN
         IF (branch .EQ. 0) THEN
           CALL POPREAL8(t)
-          CALL CLAMP_B(t, tb, zero, zerob, one, oneb)
+          CALL CLAMP_B(t, tb, zero, one)
           fb = tb/e
           eb = -(f*tb/e**2)
-          zerob = zerob + sb
           rb = 0.0_8
           ab = 0.0_8
           GOTO 100
         ELSE
           CALL POPREAL8(s)
-          CALL CLAMP_B(s, sb, zero, zerob, one, oneb)
+          CALL CLAMP_B(s, sb, zero, one)
           cb = -(sb/a)
           ab = c*sb/a**2
-          zerob = zerob + tb
           eb = 0.0_8
           fb = 0.0_8
         END IF
       ELSE
         IF (branch .EQ. 2) THEN
           CALL POPREAL8(s)
-          CALL CLAMP_B(s, sb, zero, zerob, one, oneb)
+          CALL CLAMP_B(s, sb, zero, one)
           CALL POPREAL8(s)
           cb = -(sb/a)
           ab = c*sb/a**2
-          zerob = zerob + tb
           sb = 0.0_8
           tb = 0.0_8
           bb = 0.0_8
         ELSE IF (branch .EQ. 3) THEN
           CALL POPREAL8(s)
-          CALL CLAMP_B(s, sb, zero, zerob, one, oneb)
+          CALL CLAMP_B(s, sb, zero, one)
           CALL POPREAL8(s)
           tempb1 = sb/a
           bb = tempb1
           cb = -tempb1
           ab = -((b-c)*tempb1/a)
-          oneb = oneb + tb
           sb = 0.0_8
           tb = 0.0_8
         ELSE
@@ -893,7 +880,7 @@ CONTAINS
         CALL POPCONTROL1B(branch)
         IF (branch .EQ. 0) THEN
           CALL POPREAL8(s)
-          CALL CLAMP_B(s, sb, zero, zerob, one, oneb)
+          CALL CLAMP_B(s, sb, zero, one)
           tempb = sb/denom
           bb = bb + f*tempb
           fb = fb + b*tempb
@@ -901,7 +888,6 @@ CONTAINS
           eb = eb - c*tempb
           denomb = -((b*f-c*e)*tempb/denom)
         ELSE
-          zerob = zerob + sb
           denomb = 0.0_8
         END IF
         ab = ab + e*denomb
@@ -929,29 +915,27 @@ CONTAINS
   END SUBROUTINE LINE_LINE_B
 !  Differentiation of clamp in forward (tangent) mode:
 !   variations   of useful results: n
-!   with respect to varying inputs: n min max
-  SUBROUTINE CLAMP_D(n, nd, min, mind, max, maxd)
+!   with respect to varying inputs: n
+  SUBROUTINE CLAMP_D(n, nd, min, max)
     IMPLICIT NONE
     REAL(kind=8), INTENT(IN) :: min, max
-    REAL(kind=8), INTENT(IN) :: mind, maxd
     REAL(kind=8), INTENT(INOUT) :: n
     REAL(kind=8), INTENT(INOUT) :: nd
     IF (n .LT. min) THEN
-      nd = mind
       n = min
+      nd = 0.0_8
     END IF
     IF (n .GT. max) THEN
-      nd = maxd
       n = max
+      nd = 0.0_8
     END IF
   END SUBROUTINE CLAMP_D
 !  Differentiation of clamp in reverse (adjoint) mode:
-!   gradient     of useful results: n min max
-!   with respect to varying inputs: n min max
-  SUBROUTINE CLAMP_B(n, nb, min, minb, max, maxb)
+!   gradient     of useful results: n
+!   with respect to varying inputs: n
+  SUBROUTINE CLAMP_B(n, nb, min, max)
     IMPLICIT NONE
     REAL(kind=8), INTENT(IN) :: min, max
-    REAL(kind=8) :: minb, maxb
     REAL(kind=8), INTENT(INOUT) :: n
     REAL(kind=8) :: nb
     INTEGER :: branch
@@ -961,15 +945,9 @@ CONTAINS
     ELSE
       CALL PUSHCONTROL1B(1)
     END IF
-    IF (n .GT. max) THEN
-      maxb = maxb + nb
-      nb = 0.0_8
-    END IF
+    IF (n .GT. max) nb = 0.0_8
     CALL POPCONTROL1B(branch)
-    IF (branch .EQ. 0) THEN
-      minb = minb + nb
-      nb = 0.0_8
-    END IF
+    IF (branch .EQ. 0) nb = 0.0_8
   END SUBROUTINE CLAMP_B
   SUBROUTINE LINE_LINE(p1, q1, p2, q2, d)
     IMPLICIT NONE
@@ -1043,6 +1021,26 @@ CONTAINS
     IF (n .LT. min) n = min
     IF (n .GT. max) n = max
   END SUBROUTINE CLAMP
+  SUBROUTINE MAXLOC3(a, maxind)
+    IMPLICIT NONE
+    REAL(kind=8), DIMENSION(3), INTENT(IN) :: a
+    INTEGER, INTENT(OUT) :: maxind
+    IF (a(1) .GT. a(2)) THEN
+      IF (a(1) .GT. a(3)) THEN
+        maxind = 1
+        RETURN
+      ELSE
+        maxind = 3
+        RETURN
+      END IF
+    ELSE IF (a(2) .GT. a(3)) THEN
+      maxind = 2
+      RETURN
+    ELSE
+      maxind = 3
+      RETURN
+    END IF
+  END SUBROUTINE MAXLOC3
 !  Differentiation of intersect in forward (tangent) mode:
 !   variations   of useful results: length
 !   with respect to varying inputs: c1 c2 a1 a2 b1 b2
@@ -1057,7 +1055,7 @@ CONTAINS
     REAL(kind=8), INTENT(OUT) :: length
     REAL(kind=8), INTENT(OUT) :: lengthd
     REAL(kind=8), DIMENSION(3) :: n1, n2, d, absd
-    REAL(kind=8), DIMENSION(3) :: n1d, n2d
+    REAL(kind=8), DIMENSION(3) :: n1d, n2d, dd
     REAL(kind=8), PARAMETER :: eps=1e-12
     REAL(kind=8) :: d1, da1, db1, dc1, pa1, pb1, pc1, t11, t12, t1high, &
 &   t1low, dt
@@ -1068,9 +1066,9 @@ CONTAINS
     REAL(kind=8) :: d2d, da2d, db2d, dc2d, pa2d, pb2d, pc2d, t21d, t22d&
 &   , t2highd, t2lowd
     INTEGER :: lone_vertex_1, lone_vertex_2, maxind
-    INTRINSIC ABS
     INTRINSIC MIN
     INTRINSIC MAX
+    INTRINSIC SQRT
     REAL(kind=8), DIMENSION(3) :: arg1
     REAL(kind=8), DIMENSION(3) :: arg1d
     REAL(kind=8), DIMENSION(3) :: arg2
@@ -1078,7 +1076,6 @@ CONTAINS
     REAL(kind=8) :: min1
     REAL(kind=8) :: min1d
     REAL(kind=8) :: max1d
-    LOGICAL :: mask(3)
     REAL(kind=8) :: max1
     arg1d(:) = b2d - a2d
     arg1(:) = b2 - a2
@@ -1097,11 +1094,11 @@ CONTAINS
     CALL DOT_PROD_D(dc1, dc1d, n2, n2d, c1, c1d)
     dc1d = dc1d + d2d
     dc1 = dc1 + d2
-    IF (da1 .GT. zero .AND. db1 .GT. zero .AND. dc1 .GT. zero) THEN
+    IF (da1 .GE. zero .AND. db1 .GE. zero .AND. dc1 .GE. zero) THEN
       length = 0.0
       lengthd = 0.0_8
       RETURN
-    ELSE IF (da1 .LT. zero .AND. db1 .LT. zero .AND. dc1 .LT. zero) THEN
+    ELSE IF (da1 .LE. zero .AND. db1 .LE. zero .AND. dc1 .LE. zero) THEN
       length = 0.0
       lengthd = 0.0_8
       RETURN
@@ -1124,33 +1121,25 @@ CONTAINS
       CALL DOT_PROD_D(dc2, dc2d, n1, n1d, c2, c2d)
       dc2d = dc2d + d1d
       dc2 = dc2 + d1
-      IF (da2 .GT. zero .AND. db2 .GT. zero .AND. dc2 .GT. zero) THEN
+      IF (da2 .GE. zero .AND. db2 .GE. zero .AND. dc2 .GE. zero) THEN
         length = 0.0
         lengthd = 0.0_8
         RETURN
-      ELSE IF (da2 .LT. zero .AND. db2 .LT. zero .AND. dc2 .LT. zero) &
+      ELSE IF (da2 .LE. zero .AND. db2 .LE. zero .AND. dc2 .LE. zero) &
 &     THEN
         length = 0.0
         lengthd = 0.0_8
         RETURN
       ELSE
-        CALL CROSS_PROD(d, n1, n2)
-        mask = d .GE. 0.0
-        WHERE (mask) 
-          absd = d
-        ELSEWHERE
-          absd = -d
-        END WHERE
-        CALL MAXLOC3(absd, maxind)
-        pa1d = a1d(maxind)
-        pa1 = a1(maxind)
-        pb1d = b1d(maxind)
-        pb1 = b1(maxind)
-        pc1d = c1d(maxind)
-        pc1 = c1(maxind)
-!call dot_prod(pa1, d, a1)
-!call dot_prod(pb1, d, b1)
-!call dot_prod(pc1, d, c1)
+        CALL CROSS_PROD_D(d, dd, n1, n1d, n2, n2d)
+! absd = abs(d)
+! call maxloc3(absd, maxind)
+! pa1 = a1(maxind)
+! pb1 = b1(maxind)
+! pc1 = c1(maxind)
+        CALL DOT_PROD_D(pa1, pa1d, d, dd, a1, a1d)
+        CALL DOT_PROD_D(pb1, pb1d, d, dd, b1, b1d)
+        CALL DOT_PROD_D(pc1, pc1d, d, dd, c1, c1d)
 ! need to figure out which vertex is by itself
         IF (da1 .GT. 0) THEN
           IF (db1 .GT. 0) THEN
@@ -1189,15 +1178,9 @@ CONTAINS
 &           -pb1)*db1*(db1d-dc1d))/(db1-dc1)**2
           t12 = pb1 + (pc1-pb1)*db1/(db1-dc1)
         END IF
-        pa2d = a2d(maxind)
-        pa2 = a2(maxind)
-        pb2d = b2d(maxind)
-        pb2 = b2(maxind)
-        pc2d = c2d(maxind)
-        pc2 = c2(maxind)
-! call dot_prod(pa2, d, a2)
-! call dot_prod(pb2, d, b2)
-! call dot_prod(pc2, d, c2)
+        CALL DOT_PROD_D(pa2, pa2d, d, dd, a2, a2d)
+        CALL DOT_PROD_D(pb2, pb2d, d, dd, b2, b2d)
+        CALL DOT_PROD_D(pc2, pc2d, d, dd, c2, c2d)
 ! need to figure out which vertex is by itself
         IF (da2 .GT. 0) THEN
           IF (db2 .GT. 0) THEN
@@ -1281,9 +1264,10 @@ CONTAINS
           END IF
           dtd = min1d - max1d
           dt = min1 - max1
-!/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
-          lengthd = dtd
-          length = dt
+          lengthd = (dtd*SQRT(d(1)**2+d(2)**2+d(3)**2)-dt*(2*d(1)*dd(1)+&
+&           2*d(2)*dd(2)+2*d(3)*dd(3))/(2.0*SQRT(d(1)**2+d(2)**2+d(3)**2&
+&           )))/SQRT(d(1)**2+d(2)**2+d(3)**2)**2
+          length = dt/SQRT(d(1)**2+d(2)**2+d(3)**2)
           RETURN
         END IF
       END IF
@@ -1302,7 +1286,7 @@ CONTAINS
     REAL(kind=8) :: length
     REAL(kind=8) :: lengthb
     REAL(kind=8), DIMENSION(3) :: n1, n2, d, absd
-    REAL(kind=8), DIMENSION(3) :: n1b, n2b
+    REAL(kind=8), DIMENSION(3) :: n1b, n2b, db
     REAL(kind=8), PARAMETER :: eps=1e-12
     REAL(kind=8) :: d1, da1, db1, dc1, pa1, pb1, pc1, t11, t12, t1high, &
 &   t1low, dt
@@ -1313,14 +1297,15 @@ CONTAINS
     REAL(kind=8) :: d2b, da2b, db2b, dc2b, pa2b, pb2b, pc2b, t21b, t22b&
 &   , t2highb, t2lowb
     INTEGER :: lone_vertex_1, lone_vertex_2, maxind
-    INTRINSIC ABS
     INTRINSIC MIN
     INTRINSIC MAX
+    INTRINSIC SQRT
     REAL(kind=8), DIMENSION(3) :: arg1
     REAL(kind=8), DIMENSION(3) :: arg1b
     REAL(kind=8), DIMENSION(3) :: arg2
     REAL(kind=8), DIMENSION(3) :: arg2b
     INTEGER :: branch
+    REAL(kind=8) :: temp0
     REAL(kind=8) :: tempb9
     REAL(kind=8) :: tempb8
     REAL(kind=8) :: tempb7
@@ -1345,7 +1330,8 @@ CONTAINS
     REAL(kind=8) :: min1b
     REAL(kind=8) :: max1b
     REAL(kind=8) :: tempb
-    LOGICAL :: mask(3)
+    REAL(kind=8) :: temp
+    REAL(kind=8) :: tempb23
     REAL(kind=8) :: tempb22
     REAL(kind=8) :: max1
     REAL(kind=8) :: tempb21
@@ -1361,13 +1347,15 @@ CONTAINS
     db1 = db1 + d2
     CALL DOT_PROD(dc1, n2, c1)
     dc1 = dc1 + d2
-    IF (da1 .GT. zero .AND. db1 .GT. zero .AND. dc1 .GT. zero) THEN
+    IF (da1 .GE. zero .AND. db1 .GE. zero .AND. dc1 .GE. zero) THEN
       dc1b = 0.0_8
       da1b = 0.0_8
+      n2b = 0.0_8
       db1b = 0.0_8
-    ELSE IF (da1 .LT. zero .AND. db1 .LT. zero .AND. dc1 .LT. zero) THEN
+    ELSE IF (da1 .LE. zero .AND. db1 .LE. zero .AND. dc1 .LE. zero) THEN
       dc1b = 0.0_8
       da1b = 0.0_8
+      n2b = 0.0_8
       db1b = 0.0_8
     ELSE
 ! general case
@@ -1382,36 +1370,35 @@ CONTAINS
       db2 = db2 + d1
       CALL DOT_PROD(dc2, n1, c2)
       dc2 = dc2 + d1
-      IF (da2 .GT. zero .AND. db2 .GT. zero .AND. dc2 .GT. zero) THEN
+      IF (da2 .GE. zero .AND. db2 .GE. zero .AND. dc2 .GE. zero) THEN
         dc1b = 0.0_8
         dc2b = 0.0_8
         da1b = 0.0_8
         da2b = 0.0_8
+        n1b = 0.0_8
+        n2b = 0.0_8
         db1b = 0.0_8
         db2b = 0.0_8
-      ELSE IF (da2 .LT. zero .AND. db2 .LT. zero .AND. dc2 .LT. zero) &
+      ELSE IF (da2 .LE. zero .AND. db2 .LE. zero .AND. dc2 .LE. zero) &
 &     THEN
         dc1b = 0.0_8
         dc2b = 0.0_8
         da1b = 0.0_8
         da2b = 0.0_8
+        n1b = 0.0_8
+        n2b = 0.0_8
         db1b = 0.0_8
         db2b = 0.0_8
       ELSE
         CALL CROSS_PROD(d, n1, n2)
-        mask = d .GE. 0.0
-        WHERE (mask) 
-          absd = d
-        ELSEWHERE
-          absd = -d
-        END WHERE
-        CALL MAXLOC3(absd, maxind)
-        pa1 = a1(maxind)
-        pb1 = b1(maxind)
-        pc1 = c1(maxind)
-!call dot_prod(pa1, d, a1)
-!call dot_prod(pb1, d, b1)
-!call dot_prod(pc1, d, c1)
+! absd = abs(d)
+! call maxloc3(absd, maxind)
+! pa1 = a1(maxind)
+! pb1 = b1(maxind)
+! pc1 = c1(maxind)
+        CALL DOT_PROD(pa1, d, a1)
+        CALL DOT_PROD(pb1, d, b1)
+        CALL DOT_PROD(pc1, d, c1)
 ! need to figure out which vertex is by itself
         IF (da1 .GT. 0) THEN
           IF (db1 .GT. 0) THEN
@@ -1441,12 +1428,9 @@ CONTAINS
           t12 = pb1 + (pc1-pb1)*db1/(db1-dc1)
           CALL PUSHCONTROL2B(2)
         END IF
-        pa2 = a2(maxind)
-        pb2 = b2(maxind)
-        pc2 = c2(maxind)
-! call dot_prod(pa2, d, a2)
-! call dot_prod(pb2, d, b2)
-! call dot_prod(pc2, d, c2)
+        CALL DOT_PROD(pa2, d, a2)
+        CALL DOT_PROD(pb2, d, b2)
+        CALL DOT_PROD(pc2, d, c2)
 ! need to figure out which vertex is by itself
         IF (da2 .GT. 0) THEN
           IF (db2 .GT. 0) THEN
@@ -1496,22 +1480,39 @@ CONTAINS
         END IF
 ! check if intervals overlap
         IF (t1high .LT. t2low .OR. t2high .LT. t1low) THEN
+          db = 0.0_8
           t1highb = 0.0_8
           t2lowb = 0.0_8
           t2highb = 0.0_8
           t1lowb = 0.0_8
         ELSE
           IF (t1high .GT. t2high) THEN
+            min1 = t2high
             CALL PUSHCONTROL1B(1)
           ELSE
+            min1 = t1high
             CALL PUSHCONTROL1B(0)
           END IF
           IF (t1low .LT. t2low) THEN
+            max1 = t2low
             CALL PUSHCONTROL1B(0)
           ELSE
+            max1 = t1low
             CALL PUSHCONTROL1B(1)
           END IF
-          dtb = lengthb
+          dt = min1 - max1
+          db = 0.0_8
+          temp = d(1)**2 + d(2)**2 + d(3)**2
+          temp0 = SQRT(temp)
+          IF (temp .EQ. 0.0) THEN
+            tempb23 = 0.0
+          ELSE
+            tempb23 = -(dt*lengthb/(temp0**3*2.0))
+          END IF
+          dtb = lengthb/temp0
+          db(1) = db(1) + 2*d(1)*tempb23
+          db(2) = db(2) + 2*d(2)*tempb23
+          db(3) = db(3) + 2*d(3)*tempb23
           min1b = dtb
           max1b = -dtb
           CALL POPCONTROL1B(branch)
@@ -1582,9 +1583,9 @@ CONTAINS
           pa2b = t21b - da2*tempb21
           da2b = tempb22 + (pc2-pa2)*tempb21
         END IF
-        c2b(maxind) = c2b(maxind) + pc2b
-        b2b(maxind) = b2b(maxind) + pb2b
-        a2b(maxind) = a2b(maxind) + pa2b
+        CALL DOT_PROD_B(pc2, pc2b, d, db, c2, c2b)
+        CALL DOT_PROD_B(pb2, pb2b, d, db, b2, b2b)
+        CALL DOT_PROD_B(pa2, pa2b, d, db, a2, a2b)
         CALL POPCONTROL2B(branch)
         IF (branch .EQ. 0) THEN
           tempb1 = t11b/(db1-da1)
@@ -1620,12 +1621,12 @@ CONTAINS
           pa1b = t11b - da1*tempb9
           da1b = tempb10 + (pc1-pa1)*tempb9
         END IF
-        c1b(maxind) = c1b(maxind) + pc1b
-        b1b(maxind) = b1b(maxind) + pb1b
-        a1b(maxind) = a1b(maxind) + pa1b
+        CALL DOT_PROD_B(pc1, pc1b, d, db, c1, c1b)
+        CALL DOT_PROD_B(pb1, pb1b, d, db, b1, b1b)
+        CALL DOT_PROD_B(pa1, pa1b, d, db, a1, a1b)
+        CALL CROSS_PROD_B(d, db, n1, n1b, n2, n2b)
       END IF
       d1b = db2b + da2b + dc2b
-      n1b = 0.0_8
       CALL DOT_PROD_B(dc2, dc2b, n1, n1b, c2, c2b)
       CALL DOT_PROD_B(db2, db2b, n1, n1b, b2, b2b)
       CALL DOT_PROD_B(da2, da2b, n1, n1b, a2, a2b)
@@ -1637,7 +1638,6 @@ CONTAINS
       b1b = b1b + arg1b
     END IF
     d2b = db1b + da1b + dc1b
-    n2b = 0.0_8
     CALL DOT_PROD_B(dc1, dc1b, n2, n2b, c1, c1b)
     CALL DOT_PROD_B(db1, db1b, n2, n2b, b1, b1b)
     CALL DOT_PROD_B(da1, da1b, n2, n2b, a1, a1b)
@@ -1734,13 +1734,12 @@ CONTAINS
     REAL(kind=8) :: d2, da2, db2, dc2, pa2, pb2, pc2, t21, t22, t2high, &
 &   t2low
     INTEGER :: lone_vertex_1, lone_vertex_2, maxind
-    INTRINSIC ABS
     INTRINSIC MIN
     INTRINSIC MAX
+    INTRINSIC SQRT
     REAL(kind=8), DIMENSION(3) :: arg1
     REAL(kind=8), DIMENSION(3) :: arg2
     REAL(kind=8) :: min1
-    LOGICAL :: mask(3)
     REAL(kind=8) :: max1
     arg1(:) = b2 - a2
     arg2(:) = c2 - a2
@@ -1753,10 +1752,10 @@ CONTAINS
     db1 = db1 + d2
     CALL DOT_PROD(dc1, n2, c1)
     dc1 = dc1 + d2
-    IF (da1 .GT. zero .AND. db1 .GT. zero .AND. dc1 .GT. zero) THEN
+    IF (da1 .GE. zero .AND. db1 .GE. zero .AND. dc1 .GE. zero) THEN
       length = 0.0
       RETURN
-    ELSE IF (da1 .LT. zero .AND. db1 .LT. zero .AND. dc1 .LT. zero) THEN
+    ELSE IF (da1 .LE. zero .AND. db1 .LE. zero .AND. dc1 .LE. zero) THEN
       length = 0.0
       RETURN
     ELSE
@@ -1772,28 +1771,23 @@ CONTAINS
       db2 = db2 + d1
       CALL DOT_PROD(dc2, n1, c2)
       dc2 = dc2 + d1
-      IF (da2 .GT. zero .AND. db2 .GT. zero .AND. dc2 .GT. zero) THEN
+      IF (da2 .GE. zero .AND. db2 .GE. zero .AND. dc2 .GE. zero) THEN
         length = 0.0
         RETURN
-      ELSE IF (da2 .LT. zero .AND. db2 .LT. zero .AND. dc2 .LT. zero) &
+      ELSE IF (da2 .LE. zero .AND. db2 .LE. zero .AND. dc2 .LE. zero) &
 &     THEN
         length = 0.0
         RETURN
       ELSE
         CALL CROSS_PROD(d, n1, n2)
-        mask = d .GE. 0.0
-        WHERE (mask) 
-          absd = d
-        ELSEWHERE
-          absd = -d
-        END WHERE
-        CALL MAXLOC3(absd, maxind)
-        pa1 = a1(maxind)
-        pb1 = b1(maxind)
-        pc1 = c1(maxind)
-!call dot_prod(pa1, d, a1)
-!call dot_prod(pb1, d, b1)
-!call dot_prod(pc1, d, c1)
+! absd = abs(d)
+! call maxloc3(absd, maxind)
+! pa1 = a1(maxind)
+! pb1 = b1(maxind)
+! pc1 = c1(maxind)
+        CALL DOT_PROD(pa1, d, a1)
+        CALL DOT_PROD(pb1, d, b1)
+        CALL DOT_PROD(pc1, d, c1)
 ! need to figure out which vertex is by itself
         IF (da1 .GT. 0) THEN
           IF (db1 .GT. 0) THEN
@@ -1820,12 +1814,9 @@ CONTAINS
           t11 = pa1 + (pc1-pa1)*da1/(da1-dc1)
           t12 = pb1 + (pc1-pb1)*db1/(db1-dc1)
         END IF
-        pa2 = a2(maxind)
-        pb2 = b2(maxind)
-        pc2 = c2(maxind)
-! call dot_prod(pa2, d, a2)
-! call dot_prod(pb2, d, b2)
-! call dot_prod(pc2, d, c2)
+        CALL DOT_PROD(pa2, d, a2)
+        CALL DOT_PROD(pb2, d, b2)
+        CALL DOT_PROD(pc2, d, c2)
 ! need to figure out which vertex is by itself
         IF (da2 .GT. 0) THEN
           IF (db2 .GT. 0) THEN
@@ -1883,8 +1874,7 @@ CONTAINS
             max1 = t1low
           END IF
           dt = min1 - max1
-!/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
-          length = dt
+          length = dt/SQRT(d(1)**2+d(2)**2+d(3)**2)
           RETURN
         END IF
       END IF
@@ -1904,24 +1894,4 @@ CONTAINS
     x(2) = u(3)*v(1) - u(1)*v(3)
     x(3) = u(1)*v(2) - u(2)*v(1)
   END SUBROUTINE CROSS_PROD
-  SUBROUTINE MAXLOC3(a, maxind)
-    IMPLICIT NONE
-    REAL(kind=8), DIMENSION(3), INTENT(IN) :: a
-    INTEGER, INTENT(OUT) :: maxind
-    IF (a(1) .GT. a(2)) THEN
-      IF (a(1) .GT. a(3)) THEN
-        maxind = 1
-        RETURN
-      ELSE
-        maxind = 3
-        RETURN
-      END IF
-    ELSE IF (a(2) .GT. a(3)) THEN
-      maxind = 2
-      RETURN
-    ELSE
-      maxind = 3
-      RETURN
-    END IF
-  END SUBROUTINE MAXLOC3
 END MODULE TRIANGLES_DB

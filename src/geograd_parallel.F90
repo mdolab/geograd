@@ -644,7 +644,11 @@ end subroutine compute_derivs
                             ! compute the intersection on second pass only
                             call intersect(A1batch, B1batch, C1batch, &
                             A2batch, B2batch, C2batch, intersect_temp)
-                            intersect_length_local = intersect_temp + intersect_length_local
+                            if(intersect_temp /= intersect_temp) then
+                                print *, 'NaN detected intersection routine'
+                            else 
+                                intersect_length_local = intersect_temp + intersect_length_local
+                            endif
                         end if
                     end do
                 end if
