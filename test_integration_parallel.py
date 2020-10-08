@@ -266,8 +266,7 @@ class MinDistSTLTestCase1(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
-        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
-
+        self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
         result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
@@ -301,7 +300,7 @@ class MinDistSTLTestCase2(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
-        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
+        self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
         result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
@@ -332,7 +331,7 @@ class MinDistSTLTestCase3(unittest.TestCase):
         self.objp0 = object_mesh[:,0,:].transpose()
         self.objp1 = object_mesh[:,1,:].transpose()
         self.objp2 = object_mesh[:,2,:].transpose()
-        self.maxdim = np.max(np.maximum(np.maximum(self.objp0.max(axis=1), self.objp1.max(axis=1)), self.objp2.max(axis=1)) - np.minimum(np.minimum(self.objp0.min(axis=1), self.objp1.min(axis=1)), self.objp2.min(axis=1)))
+        self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
         result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
