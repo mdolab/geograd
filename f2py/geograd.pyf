@@ -111,7 +111,7 @@ python module geograd ! in
             end subroutine intersect
         end module triangles
         module geograd ! in :geograd:src/geograd.F90
-            subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd.F90:geograd
+            subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,dpda1,dpdb1,dpdc1,dpda2,dpdb2,dpdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd.F90:geograd
                 use triangles_db
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
@@ -122,6 +122,12 @@ python module geograd ! in
                 real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksda2
                 real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksdb2
                 real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dksdc2
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dpda1
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dpdb1
+                real(kind=8) dimension(3,n1),intent(out),depend(n1) :: dpdc1
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dpda2
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dpdb2
+                real(kind=8) dimension(3,n2),intent(out),depend(n2) :: dpdc2
                 real(kind=8) dimension(3,n1),intent(in) :: a1
                 real(kind=8) dimension(3,n1),intent(in),depend(n1) :: b1
                 real(kind=8) dimension(3,n1),intent(in),depend(n1) :: c1
