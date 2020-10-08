@@ -19,6 +19,137 @@ def custom_assert(self, truth, approx, base_tol=1e-7):
     else:
         assert_almost_equal(truth, approx, decimal=7)
 
+def test_derivatives_translate_objects_random(testcase, objp0, objp1, objp2, smp0, smp1, smp2, n):
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        perim = result[1]
+
+        # test derivs
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        A1_grad = result2[9]
+        B1_grad = result2[10]
+        C1_grad = result2[11]
+        partial_sum_1  = np.sum(A1_grad, axis=1) + np.sum(B1_grad, axis=1) + np.sum(C1_grad, axis=1)
+
+        A2_grad = result2[12]
+        B2_grad = result2[13]
+        C2_grad = result2[14]
+        partial_sum_2 = np.sum(A2_grad, axis=1) + np.sum(B2_grad, axis=1) + np.sum(C2_grad, axis=1)
+        cseps = 1e-15
+        max_abs_der = 0.0
+        for i in range(n):
+            # test translating derivatives for cube1
+            offsetdir1 = np.random.uniform(-1, 1, size=(3,1))
+            offsetdir1 = offsetdir1 / np.linalg.norm(offsetdir1)
+            objp0cs = objp0 + offsetdir1*cseps*1j
+            objp1cs = objp1 + offsetdir1*cseps*1j
+            objp2cs = objp2 + offsetdir1*cseps*1j
+            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10)
+            gradcs = np.imag((rescs[1] - perim)) / cseps
+            gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
+
+            assert_almost_equal(gradexact, gradcs, decimal=10)
+            if np.abs(gradcs) > max_abs_der:
+                max_abs_der = np.abs(gradcs)
+
+            # test translating derivs for cube2
+            offsetdir2 = np.random.uniform(-1, 1, size=(3,1))
+            smp0cs = smp0 + offsetdir2*cseps*1j
+            smp1cs = smp1 + offsetdir2*cseps*1j
+            smp2cs = smp2 + offsetdir2*cseps*1j
+            rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10)
+            gradcs = np.imag((rescs[1] - perim)) / cseps
+            gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
+
+            assert_almost_equal(gradexact, gradcs, decimal=10)
+            if np.abs(gradcs) > max_abs_der:
+                max_abs_der = np.abs(gradcs)
+        testcase.assertGreater(max_abs_der, 1e-8)
+
+def test_derivatives_translate_object_fd(testcase, objp0, objp1, objp2, smp0, smp1, smp2, direction, value, test_first=True):
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        perim = result[1]
+
+        # test derivs
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        A1_grad = result2[9]
+        B1_grad = result2[10]
+        C1_grad = result2[11]
+        partial_sum_1  = np.sum(A1_grad, axis=1) + np.sum(B1_grad, axis=1) + np.sum(C1_grad, axis=1)
+
+        A2_grad = result2[12]
+        B2_grad = result2[13]
+        C2_grad = result2[14]
+        partial_sum_2 = np.sum(A2_grad, axis=1) + np.sum(B2_grad, axis=1) + np.sum(C2_grad, axis=1)
+        fdeps = 1e-5
+
+        # test translating derivatives for object 1
+        if test_first:
+            offsetdir1 = direction.copy().reshape((3,1))
+            objp0fd = objp0 + offsetdir1*fdeps
+            objp1fd = objp1 + offsetdir1*fdeps
+            objp2fd = objp2 + offsetdir1*fdeps
+            resfd = g.compute(objp0fd, objp1fd, objp2fd, smp0, smp1, smp2, 0.001, 10)
+            gradfd = (resfd[1] - perim) / fdeps
+            gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
+
+            assert_almost_equal(gradexact, gradfd, decimal=10)
+            assert_almost_equal(gradexact, value)
+
+        # test translating derivs for object 2
+        offsetdir2 = - direction.copy().reshape((3,1))
+        smp0fd = smp0 + offsetdir2*fdeps
+        smp1fd = smp1 + offsetdir2*fdeps
+        smp2fd = smp2 + offsetdir2*fdeps
+        resfd = g.compute(objp0, objp1, objp2, smp0fd, smp1fd, smp2fd, 0.001, 10)
+        gradfd = (resfd[1] - perim) / fdeps
+        gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
+
+        assert_almost_equal(gradexact, gradfd, decimal=10)
+        assert_almost_equal(gradexact, value)
+
+
+def test_derivatives_translate_object_given(testcase, objp0, objp1, objp2, smp0, smp1, smp2, direction, value, test_first=True, tol=1e-7):
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        perim = result[1]
+
+        # test derivs
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        A1_grad = result2[9]
+        B1_grad = result2[10]
+        C1_grad = result2[11]
+        partial_sum_1  = np.sum(A1_grad, axis=1) + np.sum(B1_grad, axis=1) + np.sum(C1_grad, axis=1)
+
+        A2_grad = result2[12]
+        B2_grad = result2[13]
+        C2_grad = result2[14]
+        partial_sum_2 = np.sum(A2_grad, axis=1) + np.sum(B2_grad, axis=1) + np.sum(C2_grad, axis=1)
+        cseps = 1e-15
+
+        # test translating derivatives for object 1
+        if test_first:
+            offsetdir1 = direction.copy().reshape((3,1))
+            objp0cs = objp0 + offsetdir1*cseps*1j
+            objp1cs = objp1 + offsetdir1*cseps*1j
+            objp2cs = objp2 + offsetdir1*cseps*1j
+            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10)
+            gradcs = np.imag((rescs[1] - perim)) / cseps
+            gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
+
+            assert_almost_equal(gradexact, gradcs, decimal=10)
+            custom_assert(testcase, gradexact, value, tol)
+
+        # test translating derivs for object 2
+        offsetdir2 = - direction.copy().reshape((3,1))
+        smp0cs = smp0 + offsetdir2*cseps*1j
+        smp1cs = smp1 + offsetdir2*cseps*1j
+        smp2cs = smp2 + offsetdir2*cseps*1j
+        rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10)
+        gradcs = np.imag((rescs[1] - perim)) / cseps
+        gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
+
+        assert_almost_equal(gradexact, gradcs, decimal=10)
+        custom_assert(testcase, gradexact, value, tol)
+
 def test_derivatives_CS(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, indices_2=None, method='cs'):
         result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho)
         result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho)
@@ -351,7 +482,7 @@ def generate_plane(vector1, vector2, start_point):
     return p0, p1, p2
 
 class BisectSphereTestCase(unittest.TestCase):
-    def test_two_cubes(self):
+    def test_bisect_sphere(self):
         if os.path.isdir(os.getcwd()+'/tests'):
             test_data_path = os.getcwd()+'/tests'
         else:
@@ -364,12 +495,23 @@ class BisectSphereTestCase(unittest.TestCase):
         smp1 = surface_mesh[:,1,:].transpose()
         smp2 = surface_mesh[:,2,:].transpose()
 
-        objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 0]))
+        objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 0.00001]))
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
 
         custom_assert(self, result[1], np.pi*25., base_tol=5e-4)
         result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
         custom_assert(self, result2[1], np.pi*25., base_tol=5e-4)
+
+        # pick a new offset
+        radius = 25/2
+        offset = radius * 0.5
+        
+        objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 1e-4+offset]))
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        custom_assert(self, result[1], 2*np.pi*radius*np.sqrt(1-(offset/radius)**2), base_tol=5e-4)
+        deriv = 2*np.pi*radius*(1-(offset/radius)**2)**(-1/2)*(-offset)/radius**2
+        # the error is discretization error in the sphere, not necessarily error in the computed derivatives of the STL
+        test_derivatives_translate_object_given(self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[0., 0., 1.]]), deriv, test_first=True, tol=1e-2)
 
 class BisectPlaneTestCase(unittest.TestCase):
     def test_bisect_planes(self):
@@ -401,6 +543,7 @@ class BisectCubeTestCase(unittest.TestCase):
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
         result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
         custom_assert(self, result[1], 16., base_tol=1e-7)
+        test_derivatives_translate_object_given(self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[1., 0., 0.]]), 0.0)
 
 class OffsetCubesTestCase(unittest.TestCase):
     def test_two_cubes(self):
@@ -424,8 +567,10 @@ class OffsetCubesTestCase(unittest.TestCase):
         objp1 = object_mesh[:,1,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)
         objp2 = object_mesh[:,2,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)           
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        perim = result[1]
+        custom_assert(self, perim, 4*np.sqrt(2)+2*2, base_tol=1e-6)
+        test_derivatives_translate_objects_random(self, objp0, objp1, objp2, smp0, smp1, smp2, 10)
 
-        custom_assert(self, result[1], 4*np.sqrt(2)+2*2, base_tol=1e-6)
 
 class OffsetSphereIntersectedTestCase(unittest.TestCase):
     def test_fixed_intersection(self):
@@ -457,7 +602,8 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
 
         exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
         custom_assert(self, result[1], 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2), base_tol=5e-3)
-
+        test_derivatives_translate_objects_random(self, objp0, objp1, objp2, smp0, smp1, smp2, 2)
+        
     def test_randomly_generated_intersections(self):
         if os.path.isdir(os.getcwd()+'/tests'):
             test_data_path = os.getcwd()+'/tests'
@@ -473,7 +619,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         smp1 = surface_mesh[:,1,:].transpose()
         smp2 = surface_mesh[:,2,:].transpose()
 
-        for i in range(10):
+        for i in range(5):
             
             object_mesh = object_mesh_base.copy()
             # generate a random unit vector direction
@@ -495,6 +641,8 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
                 # intersecting
                 exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
                 custom_assert(self, result[1], 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2), base_tol=5e-3)
+                test_derivatives_translate_objects_random(self, objp0, objp1, objp2, smp0, smp1, smp2,1)
+
             elif offsetmagnitude > 2.0 * sphere_rad:
                 # nonintersecting
                 exact_int = 0.0
