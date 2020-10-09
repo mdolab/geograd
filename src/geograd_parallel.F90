@@ -204,6 +204,7 @@ module geograd_parallel
 
 #ifndef USE_COMPLEX
 subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
+    dPdA1, dPdB1, dPdC1, dPdA2, dPdB2, dPdC2, &
     A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
    use triangles_db
    use mpi
@@ -216,6 +217,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    real(kind=8), INTENT(out), dimension(4) :: timings
    real(kind=8), intent(out), dimension(3,n1) :: dKSdA1, dKSdB1, dKSdC1
    real(kind=8), intent(out), dimension(3,n2) :: dKSdA2, dKSdB2, dKSdC2
+   real(kind=8), intent(out), dimension(3,n1) :: dPdA1, dPdB1, dPdC1
+   real(kind=8), intent(out), dimension(3,n2) :: dPdA2, dPdB2, dPdC2
    integer :: tri_ind_1_local, tri_ind_2, minloc_index, inner_count ! loop indices
    real(kind=8) :: d, cur_min_dist, intersect_temp, intersect_length_local, &
                    garbage, base_exp_accumulator, base_exp_accumulator_local, obj_tol, base_exp_temp
@@ -227,7 +230,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    real(kind=8), dimension(3) :: A1batch, B1batch, C1batch, A2batch, B2batch, C2batch
    real(kind=8), allocatable :: dKSdA1_local(:,:), dKSdB1_local(:,:), dKSdC1_local(:,:)
    real(kind=8), dimension(3,n2) :: dKSdA2_local, dKSdB2_local, dKSdC2_local
-   
+   real(kind=8), allocatable :: dPdA1_local(:,:), dPdB1_local(:,:), dPdC1_local(:,:)
+   real(kind=8), dimension(3,n2) :: dPdA2_local, dPdB2_local, dPdC2_local
    integer :: error, id, n_procs, outside_bb_flag
    integer, allocatable :: proc_split(:), proc_disp(:), bb_flag_vec_local(:), bb_flag_vec(:)
    integer, parameter :: n_dim = 3
@@ -240,7 +244,8 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    real(kind=8) :: start_time, loop_start, loop_end, end_time, load_balancing_time, &
    reduce_time, overall_time, min_loop_time, min_reduce_time, loop_time
    integer :: req1, req2, req3, req4
-   integer :: req5, req6, req7
+   integer :: req5, req6, req7, req8, req9, req10
+   integer :: req11, req12, req13
    integer :: status(MPI_STATUS_SIZE)
 
 #ifdef INSTRUMENTATION
@@ -288,14 +293,21 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        allocate(dKSdA1_local(3, proc_split(id)), &
                dKSdB1_local(3, proc_split(id)), &
                dKSdC1_local(3, proc_split(id)))
-
+        allocate(dPdA1_local(3, proc_split(id)), &
+               dPdB1_local(3, proc_split(id)), &
+               dPdC1_local(3, proc_split(id)))
        dKSdA1_local = 0.0
        dKSdB1_local = 0.0
        dKSdC1_local = 0.0
        dKSdA2_local = 0.0
        dKSdB2_local = 0.0
        dKSdC2_local = 0.0
-
+       dPdA1_local = 0.0
+       dPdB1_local = 0.0
+       dPdC1_local = 0.0
+       dPdA2_local = 0.0
+       dPdB2_local = 0.0
+       dPdC2_local = 0.0
        do tri_ind_1_local = 1, proc_split(id)
            ! check this triangle is getting computed
            ! if no, compute a KS contribution equal to the width of the component times the number of facets
@@ -304,7 +316,36 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
            A1batch = A1(:,tri_ind_1_local+proc_disp(id))
            B1batch = B1(:,tri_ind_1_local+proc_disp(id))
            C1batch = C1(:,tri_ind_1_local+proc_disp(id))
-          
+
+           ! TODO add bounding case for the intersections
+           do tri_ind_2 = 1, n2
+                A2batch = A2(:,tri_ind_2)
+                B2batch = B2(:,tri_ind_2)
+                C2batch = C2(:,tri_ind_2) 
+                call intersect(A1batch, B1batch, C1batch, &
+                            A2batch, B2batch, C2batch, intersect_temp)
+                if (intersect_temp > 0.0) then 
+                    rev_seed = 1.0
+                    dA1 = 0.0
+                    dB1 = 0.0
+                    dC1 = 0.0
+                    dA2 = 0.0
+                    dB2 = 0.0
+                    dC2 = 0.0
+                    call intersect_b(A1batch, dA1, B1batch, dB1, C1batch, dC1, &
+                                    A2batch, dA2, B2batch, dB2, C2batch, dC2, & 
+                                    garbage, rev_seed)
+
+            !     ! TODO accumulate derivs and rezero
+                    dPdA1_local(:, tri_ind_1_local) = dPdA1_local(:, tri_ind_1_local) + dA1
+                    dPdB1_local(:, tri_ind_1_local) = dPdB1_local(:, tri_ind_1_local) + dB1
+                    dPdC1_local(:, tri_ind_1_local) = dPdC1_local(:, tri_ind_1_local) + dC1
+                    dPdA2_local(:, tri_ind_2) = dPdA2_local(:, tri_ind_2) + dA2
+                    dPdB2_local(:, tri_ind_2) = dPdB2_local(:, tri_ind_2) + dB2
+                    dPdC2_local(:, tri_ind_2) = dPdC2_local(:, tri_ind_2) + dC2
+                endif
+                intersect_length_local = intersect_length_local + intersect_temp
+            end do
            if (.NOT. bb_test(A1batch, B1batch, C1batch, obj_bb_xmin, obj_bb_xmax, &
                              obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax)) then
                ! do not bother computing the actual pairwise tests. Add a conservative estimate
@@ -419,6 +460,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
                        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
         KS = (1/rho) * log(base_exp_accumulator) - mindist_in
         call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+        call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
 
        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
        call MPI_IAllgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
@@ -432,12 +474,26 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        call MPI_IAllgatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
        proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req3, error)
 
+       call MPI_IAllgatherv(dPdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdA1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req8, error)
+       call MPI_IAllgatherv(dPdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdB1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req9, error)  
+       call MPI_IAllgatherv(dPdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdC1, &
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req10, error)
+
        dKSdA2_local = (1 / base_exp_accumulator) * dKSdA2_local
        call MPI_IAllreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req4, error)
        dKSdB2_local = (1 / base_exp_accumulator) * dKSdB2_local
        call MPI_IAllreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req5, error)
        dKSdC2_local = (1 / base_exp_accumulator) * dKSdC2_local
        call MPI_IAllreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req6, error)
+
+
+       call MPI_IAllreduce(dPdA2_local, dPdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req11, error)
+       call MPI_IAllreduce(dPdB2_local, dPdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req12, error)
+       call MPI_IAllreduce(dPdC2_local, dPdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req13, error)
+
+
 
        ! allgatherv the ABC1 derivatives
     !    call MPI_Allgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
@@ -470,11 +526,18 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        call MPI_Wait(req1, status, error)
        call MPI_Wait(req2, status, error)
        call MPI_Wait(req3, status, error)
+       call MPI_Wait(req8, status, error)
+       call MPI_Wait(req9, status, error)
+       call MPI_Wait(req10, status, error)
        deallocate(dKSdA1_local,dKSdB1_local,dKSdC1_local)
+       deallocate(dPdA1_local,dPdB1_local,dPdC1_local)
 
        call MPI_Wait(req4, status, error)
        call MPI_Wait(req5, status, error)
        call MPI_Wait(req6, status, error)
+       call MPI_Wait(req11, status, error)
+       call MPI_Wait(req12, status, error)
+       call MPI_Wait(req13, status, error)
 #ifdef INSTRUMENTATION
        end_time = MPI_Wtime()
 #endif
@@ -507,8 +570,6 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
         ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
         ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
 #endif
-        intersect_length = 0
-        ! TODO put intersection back in here
         obj_tol = obj_tol * 2.0     
     end do
     if (mindist_in /= mindist) then
@@ -615,7 +676,7 @@ end subroutine compute_derivs
 
                         A2batch = A2(:,tri_ind_2)
                         B2batch = B2(:,tri_ind_2)
-                        C2batch = C2(:,tri_ind_2)             
+                        C2batch = C2(:,tri_ind_2)
                         call line_line(A1batch, B1batch, A2batch, B2batch, distance_vec(1))
                         call line_line(A1batch, B1batch, B2batch, C2batch, distance_vec(2))
                         call line_line(A1batch, B1batch, A2batch, C2batch, distance_vec(3))
@@ -639,7 +700,6 @@ end subroutine compute_derivs
 
                         if (mindist_in /= second_pass_flag) then
                         ! compute KS function on second pass only
-                        !    ks_accumulator_local = ks_accumulator_local + sum(exp((mindist_in - distance_vec)*rho))
                             ks_accumulator_local = ks_accumulator_local + exp((mindist_in - d)*rho)
                             ! compute the intersection on second pass only
                             call intersect(A1batch, B1batch, C1batch, &
@@ -652,8 +712,6 @@ end subroutine compute_derivs
                         end if
                     end do
                 end if
-                ! real(end_time))
-                ! elapsed_time = end_time - start_time
             end do
             ! do the reductions
 #ifdef INSTRUMENTATION
