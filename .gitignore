@@ -7,3 +7,4 @@ paper.*
 *.bib
 !eecs587.bib
 !paper.tex
+*.pyc
