@@ -1,7 +1,7 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module geograd ! in 
+python module libgeograd ! in 
     interface  ! in :geograd
         module triangles_db ! in :geograd:tapenade/triangles_db.f90
             subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,d,dd) ! in :geograd:tapenade/triangles_db.f90:triangles_db

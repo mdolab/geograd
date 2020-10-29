@@ -1,7 +1,7 @@
 import numpy as np 
 import unittest
 from geograd import geograd_parallel as g
-from geograd_complex import geograd as gcs
+from geograd import geograd_parallel_complex as gcs
 from stl import mesh
 import os
 h = 1e-15
@@ -60,10 +60,8 @@ def custom_assert(self, truth, approx, base_tol=1e-7):
 
 class BWBTestCase(unittest.TestCase):
     def setUp(self):
-        if os.path.isdir(os.getcwd()+'/tests'):
-            test_data_path = os.getcwd()+'/tests'
-        else:
-            raise IOError
+        self.base_path = os.path.dirname(os.path.abspath(__file__))
+        test_data_path = self.base_path + r'/inputFiles'
 
         # the 'surface'  mesh is a the same blob file offset by 3 units in the y direction
         surface_mesh = mesh.Mesh.from_file(test_data_path+'/bwb.stl').vectors

@@ -8,3 +8,4 @@ paper.*
 !eecs587.bib
 !paper.tex
 *.pyc
+config/config.mk
