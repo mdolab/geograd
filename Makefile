@@ -32,7 +32,7 @@ test:
 	python3 tests/test_integration.py
 	mpirun -np 4 python3 tests/test_integration_parallel.py
 
-default_build: python3 python3_complex test
+default_build: python3 python3_complex
 
 pyf: tapenade/triangles_db.f90 src/triangles.F90 src/geograd_parallel.F90 src/geograd.F90
 	$(F2PY) tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 -m geograd -h f2py/geograd.pyf
