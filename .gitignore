@@ -9,3 +9,4 @@ paper.*
 !paper.tex
 *.pyc
 config/config.mk
+geograd.egg-info/*
