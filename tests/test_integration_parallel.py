@@ -349,6 +349,8 @@ def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None
         testcase.assertTrue(nonzero_grad_ks, msg='Check to make sure at least one gradient checked is actually nonzero')
 
 class TestIntersectTrivial(unittest.TestCase):
+    N_PROCS = 4
+
     def setUp(self):
         self.a1 = np.repeat(np.array([0.0, 0.0, 0.0]),2).reshape(3,2)
         self.b1 = np.repeat(np.array([1.0, 0.0, 0.0]),2).reshape(3,2)
@@ -383,6 +385,8 @@ class TestIntersectTrivial(unittest.TestCase):
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
 class MinDistSTLTestCase1(unittest.TestCase):
+    N_PROCS = 4
+
     def setUp(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -415,6 +419,8 @@ class MinDistSTLTestCase1(unittest.TestCase):
 
 
 class MinDistSTLTestCase2(unittest.TestCase):
+    N_PROCS = 4
+
     def setUp(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -444,6 +450,8 @@ class MinDistSTLTestCase2(unittest.TestCase):
         helpter_test_derivs_cs(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [61, 10, 87], [51, 10, 12])
 
 class MinDistSTLTestCase3(unittest.TestCase):
+    N_PROCS = 4
+
     def setUp(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -483,6 +491,8 @@ def generate_plane(vector1, vector2, start_point):
     return p0, p1, p2
 
 class BisectSphereTestCase(unittest.TestCase):
+    N_PROCS = 4
+
     def test_two_cubes(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -513,6 +523,8 @@ class BisectSphereTestCase(unittest.TestCase):
         helper_test_derivatives_translate_object_given(self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[0., 0., 1.]]), deriv, test_first=True, tol=1e-2)
 
 class BisectPlaneTestCase(unittest.TestCase):
+    N_PROCS = 4
+
     def test_bisect_planes(self):
         
         objp0, objp1, objp2 = generate_plane(np.array([0., 0., 80.]), np.array([0., 80., 0.]), np.array([0.0, -40., -40]))
@@ -525,6 +537,8 @@ class BisectPlaneTestCase(unittest.TestCase):
         custom_assert(self, result[1], 80., base_tol=1e-3)
 
 class BisectCubeTestCase(unittest.TestCase):
+    N_PROCS = 4
+
     def test_plane_cube(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -542,6 +556,8 @@ class BisectCubeTestCase(unittest.TestCase):
         helper_test_derivatives_translate_object_given(self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[1., 0., 0.]]), 0.0, 100)
 
 class OffsetCubesTestCase(unittest.TestCase):
+    N_PROCS = 4
+
     def test_two_cubes(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
@@ -567,6 +583,8 @@ class OffsetCubesTestCase(unittest.TestCase):
 
 
 class OffsetSphereIntersectedTestCase(unittest.TestCase):
+    N_PROCS = 4
+
     def test_fixed_intersection(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r'/inputFiles'
