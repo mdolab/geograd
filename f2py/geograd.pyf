@@ -157,7 +157,7 @@ python module libgeograd ! in
             end subroutine compute
         end module geograd
         module geograd_parallel ! in :geograd:src/geograd_parallel.F90
-            subroutine compute_derivs(ks,intersect_length,mindist,timings,unbalance,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,dpda1,dpdb1,dpdc1,dpda2,dpdb2,dpdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute_derivs(ks,intersect_length,mindist,timings,unbalance,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,dpda1,dpdb1,dpdc1,dpda2,dpdb2,dpdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in,geograd_comm_world) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles_db
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
@@ -187,8 +187,9 @@ python module libgeograd ! in
                 real(kind=8) intent(in) :: mindist_in
                 real(kind=8) intent(in) :: rho
                 real(kind=8) intent(in) :: obj_tol_in
+                integer intent(in) :: geograd_comm_world
             end subroutine compute_derivs
-            subroutine compute(ks,intersect_length,mindist,timings,unbalance,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in) ! in :geograd:src/geograd_parallel.F90:geograd
+            subroutine compute(ks,intersect_length,mindist,timings,unbalance,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in,geograd_comm_world) ! in :geograd:src/geograd_parallel.F90:geograd
                 use triangles
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
@@ -206,6 +207,7 @@ python module libgeograd ! in
                 real(kind=8) intent(in) :: mindist_in
                 real(kind=8) intent(in) :: rho
                 real(kind=8) intent(in) :: obj_tol_in
+                integer intent(in) :: geograd_comm_world
             end subroutine compute
         end module geograd_parallel
     end interface 

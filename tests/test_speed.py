@@ -80,15 +80,17 @@ class BWBTestCase(unittest.TestCase):
 
     def test_values(self):
         transl_vec = np.linspace(0,28.0, 50)
-        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, self.maxdim)
+        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, 1.0, 10, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(0.1698771104979689, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
+        result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0, self.objp1, self.objp2, result[2], 10, self.maxdim, MPI.COMM_WORLD.py2f())
+        self.assertAlmostEqual(0.3466089344854115, result[0], 4)
         loop_time = 0
         unbalance = 0
         start=time.time()
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
-            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
+            result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim, MPI.COMM_WORLD.py2f())
             loop_time = loop_time+result[3]
             unbalance += result[4]
         end = time.time()
@@ -102,7 +104,7 @@ class BWBTestCase(unittest.TestCase):
         for i in range(50):
             offset = np.array([0.0,  0.0, -transl_vec[i]]).reshape(3,1)
             # result = g.compute(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 1.0, 10, self.maxdim)
-            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 0.10, 10, self.maxdim)
+            result = g.compute_derivs(self.smp0, self.smp1, self.smp2, self.objp0+offset, self.objp1+offset, self.objp2+offset, 0.10, 10, self.maxdim, MPI.COMM_WORLD.py2f())
             loop_time = loop_time+result[3]
             unbalance += result[4]
         end = time.time()
