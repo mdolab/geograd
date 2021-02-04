@@ -48,7 +48,8 @@ module geograd_parallel
         end if
     end function bb_test 
 
-    subroutine load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n_tris, n_procs, id, geograd_comm_world)
+    subroutine load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, & 
+                                  obj_tol, n_tris, n_procs, id, geograd_comm_world)
         use mpi
         implicit none
         integer, intent(in) :: n_tris, n_procs, id
@@ -652,7 +653,8 @@ end subroutine compute_derivs
             obj_bb_ymax = obj_maxs(2) + obj_tol   
             obj_bb_zmin = obj_mins(3) - obj_tol
             obj_bb_zmax = obj_maxs(3) + obj_tol
-            call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id, geograd_comm_world)
+            call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, & 
+                                    n_procs, id, geograd_comm_world)
 #ifdef INSTRUMENTATION
 #ifndef USE_COMPLEX
             loop_start = MPI_Wtime()
@@ -729,7 +731,8 @@ end subroutine compute_derivs
             !     print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
             ! end if
             call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
-            call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
+            call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, & 
+                               geograd_comm_world, error)
 #ifdef USE_COMPLEX
             call MPI_Allreduce(real(cur_min_dist), mindist, 1, MPI_DOUBLE, MPI_MIN, geograd_comm_world, error)
 #else
