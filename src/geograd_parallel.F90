@@ -48,7 +48,8 @@ module geograd_parallel
         end if
     end function bb_test 
 
-    subroutine load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n_tris, n_procs, id)
+    subroutine load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, & 
+                                  obj_tol, n_tris, n_procs, id, geograd_comm_world)
         use mpi
         implicit none
         integer, intent(in) :: n_tris, n_procs, id
@@ -65,6 +66,7 @@ module geograd_parallel
         integer, dimension(proc_split(id)) :: bb_flag_vec_local
         real(kind=8), dimension(3) :: A1batch, B1batch, C1batch
         real(kind=8) :: obj_bb_xmin, obj_bb_xmax, obj_bb_ymin, obj_bb_ymax, obj_bb_zmin, obj_bb_zmax
+        integer, intent(in) :: geograd_comm_world
 
         obj_bb_xmin = obj_mins(1) - obj_tol
         obj_bb_xmax = obj_maxs(1) + obj_tol 
@@ -92,7 +94,7 @@ module geograd_parallel
         bb_active_this_proc = sum(bb_flag_vec_local) ! total number of triangles that need expensive computation
         ! allgather the active test counts
         call MPI_Allgather(bb_active_this_proc, 1, MPI_INTEGER, &
-                      bb_active_all_procs, 1, MPI_INTEGER, MPI_COMM_WORLD, error)
+                      bb_active_all_procs, 1, MPI_INTEGER, geograd_comm_world, error)
         bb_active_count = sum(bb_active_all_procs)
 
         if (bb_active_count < n_procs) then
@@ -130,7 +132,7 @@ module geograd_parallel
         end do
         ! allreduce the disps
         call MPI_Allreduce(proc_disp_local, proc_disp, n_procs, &
-                       MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, error)
+                       MPI_INTEGER, MPI_MIN, geograd_comm_world, error)
         ! compute the counts
         do proc_idx = 1, n_procs-1
             proc_split(proc_idx - 1) = proc_disp(proc_idx) - proc_disp(proc_idx - 1)
@@ -205,7 +207,7 @@ module geograd_parallel
 #ifndef USE_COMPLEX
 subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
     dPdA1, dPdB1, dPdC1, dPdA2, dPdB2, dPdC2, &
-    A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
+    A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in, geograd_comm_world)
    use triangles_db
    use mpi
    implicit none
@@ -213,6 +215,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    real(kind=8), dimension(3,n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
    real(kind=8), dimension(3,n2), INTENT(in) :: A2, B2, C2 ! second triangulated surface vertices
    real(kind=8), INTENT(in) :: mindist_in, rho, obj_tol_in ! known global minimum distance (used for second pass, computing KS)
+   integer, intent(in) :: geograd_comm_world ! MPI communicator object
    real(kind=8), intent(out) :: KS, intersect_length, mindist, unbalance ! results
    real(kind=8), INTENT(out), dimension(4) :: timings
    real(kind=8), intent(out), dimension(3,n1) :: dKSdA1, dKSdB1, dKSdC1
@@ -249,12 +252,12 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
    integer :: status(MPI_STATUS_SIZE)
 
 #ifdef INSTRUMENTATION
-    call MPI_Barrier(MPI_COMM_WORLD, error)        
+    call MPI_Barrier(geograd_comm_world, error)        
    start_time = MPI_Wtime()
 #endif
 
-   call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
-   call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
+   call MPI_Comm_size ( geograd_comm_world, n_procs, error )
+   call MPI_Comm_rank ( geograd_comm_world, id, error )
 
    allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
 
@@ -283,7 +286,7 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
        obj_bb_ymax = obj_maxs(2) + obj_tol   
        obj_bb_zmin = obj_mins(3) - obj_tol
        obj_bb_zmax = obj_maxs(3) + obj_tol
-       call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
+       call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id, geograd_comm_world)
     !    if (id == 0) then
     !     print *,'Disps: ',proc_disp
     !    end if
@@ -457,71 +460,71 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
 #endif
        ! allreduce the base exp
         call MPI_Allreduce(base_exp_accumulator_local, base_exp_accumulator, 1, &
-                       MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
+                       MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
         KS = (1/rho) * log(base_exp_accumulator) - mindist_in
-        call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
-        call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
+        call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
+        call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
 
        dKSdA1_local = (1 / base_exp_accumulator) * dKSdA1_local
        call MPI_IAllgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req1, error)
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req1, error)
 
        dKSdB1_local = (1 / base_exp_accumulator) * dKSdB1_local
        call MPI_IAllgatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdB1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req2, error)  
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req2, error)  
 
        dKSdC1_local = (1 / base_exp_accumulator) * dKSdC1_local
        call MPI_IAllgatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req3, error)
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req3, error)
 
        call MPI_IAllgatherv(dPdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdA1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req8, error)
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req8, error)
        call MPI_IAllgatherv(dPdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdB1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req9, error)  
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req9, error)  
        call MPI_IAllgatherv(dPdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dPdC1, &
-       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, req10, error)
+       proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, req10, error)
 
        dKSdA2_local = (1 / base_exp_accumulator) * dKSdA2_local
-       call MPI_IAllreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req4, error)
+       call MPI_IAllreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req4, error)
        dKSdB2_local = (1 / base_exp_accumulator) * dKSdB2_local
-       call MPI_IAllreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req5, error)
+       call MPI_IAllreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req5, error)
        dKSdC2_local = (1 / base_exp_accumulator) * dKSdC2_local
-       call MPI_IAllreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req6, error)
+       call MPI_IAllreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req6, error)
 
 
-       call MPI_IAllreduce(dPdA2_local, dPdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req11, error)
-       call MPI_IAllreduce(dPdB2_local, dPdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req12, error)
-       call MPI_IAllreduce(dPdC2_local, dPdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, req13, error)
+       call MPI_IAllreduce(dPdA2_local, dPdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req11, error)
+       call MPI_IAllreduce(dPdB2_local, dPdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req12, error)
+       call MPI_IAllreduce(dPdC2_local, dPdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, req13, error)
 
 
 
        ! allgatherv the ABC1 derivatives
     !    call MPI_Allgatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, error)
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, error)
 
     !    call MPI_Allgatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdB1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, error)        
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, error)        
 
     !    call MPI_Allgatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, error)
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, geograd_comm_world, error)
 
     !    call MPI_Gatherv(dKSdA1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdA1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, error)
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, geograd_comm_world, error)
 
     !    call MPI_Gatherv(dKSdB1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdB1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, error)        
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, geograd_comm_world, error)        
 
     !    call MPI_Gatherv(dKSdC1_local, proc_split(id)*n_dim, MPI_DOUBLE_PRECISION, dKSdC1, &
-    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, error)
+    !    proc_split*n_dim, proc_disp*n_dim, MPI_DOUBLE_PRECISION, 0, geograd_comm_world, error)
        ! allreduce the ABC2 derivatives
 
-    !    call MPI_Allreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
-    !    call MPI_Allreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
-    !    call MPI_Allreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
+    !    call MPI_Allreduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
+    !    call MPI_Allreduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
+    !    call MPI_Allreduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
 
-    !    call MPI_Reduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
-    !    call MPI_Reduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
-    !    call MPI_Reduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
+    !    call MPI_Reduce(dKSdA2_local, dKSdA2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, geograd_comm_world, error)
+    !    call MPI_Reduce(dKSdB2_local, dKSdB2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, geograd_comm_world, error)
+    !    call MPI_Reduce(dKSdC2_local, dKSdC2, 3*n2, MPI_DOUBLE_PRECISION, MPI_SUM, 0, geograd_comm_world, error)
        ! allreduce the mindist
        call MPI_Wait(req1, status, error)
        call MPI_Wait(req2, status, error)
@@ -541,10 +544,10 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
 #ifdef INSTRUMENTATION
        end_time = MPI_Wtime()
 #endif
-    !    call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+    !    call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
        ! compute the imbalance
-       ! call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-       ! call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+       ! call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+       ! call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
     !    if (id == 0) then
     !        print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
     !    end if
@@ -560,15 +563,15 @@ subroutine compute_derivs(KS, intersect_length, mindist, timings, unbalance, dKS
         timings_temp(2) = loop_time
         timings_temp(3) = reduce_time
         timings_temp(4) = overall_time
-        call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
-        call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
+        call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, geograd_comm_world, error)
+        call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, geograd_comm_world, error)
         ! compute avg utilization instead of max under utilization
         unbalance = (min_loop_time / n_procs) / timings(2) * 100
         ! unbalance = (timings(2) - min_loop_time)/timings(2)*100
-        ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-        ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
-        ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-        ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
+        ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+        ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
+        ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+        ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
 #endif
         obj_tol = obj_tol * 2.0     
     end do
@@ -579,7 +582,7 @@ end subroutine compute_derivs
 #endif
 
     subroutine compute(KS, intersect_length, mindist, timings, unbalance, A1, &
-                    B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in)
+                    B1, C1, A2, B2, C2, n1, n2, mindist_in, rho, obj_tol_in, geograd_comm_world)
         use triangles
         use mpi
         implicit none
@@ -587,6 +590,7 @@ end subroutine compute_derivs
         real(kind=8), dimension(3,n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
         real(kind=8), dimension(3,n2), INTENT(in) :: A2, B2, C2 ! second triangulated surface vertices
         real(kind=8), INTENT(in) :: mindist_in, rho, obj_tol_in ! known global minimum distance (used for second pass, computing KS)
+        integer, intent(in) :: geograd_comm_world ! MPI communicator object
         real(kind=8), intent(out) :: KS, intersect_length, mindist ! results
         real(kind=8), INTENT(out), dimension(4) :: timings
 
@@ -610,13 +614,13 @@ end subroutine compute_derivs
 
 #ifdef INSTRUMENTATION
 #ifndef USE_COMPLEX
-        call MPI_Barrier(MPI_COMM_WORLD, error)        
+        call MPI_Barrier(geograd_comm_world, error)        
         start_time = MPI_Wtime()
 #endif
 #endif
 
-        call MPI_Comm_size ( MPI_COMM_WORLD, n_procs, error )
-        call MPI_Comm_rank ( MPI_COMM_WORLD, id, error )
+        call MPI_Comm_size ( geograd_comm_world, n_procs, error )
+        call MPI_Comm_rank ( geograd_comm_world, id, error )
         allocate(proc_split(0:(n_procs-1)), proc_disp(0:(n_procs-1)))
  
 
@@ -649,7 +653,8 @@ end subroutine compute_derivs
             obj_bb_ymax = obj_maxs(2) + obj_tol   
             obj_bb_zmin = obj_mins(3) - obj_tol
             obj_bb_zmax = obj_maxs(3) + obj_tol
-            call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, n_procs, id)
+            call load_balance_split(proc_split, proc_disp, A1, B1, C1, obj_mins, obj_maxs, obj_tol, n1, & 
+                                    n_procs, id, geograd_comm_world)
 #ifdef INSTRUMENTATION
 #ifndef USE_COMPLEX
             loop_start = MPI_Wtime()
@@ -720,17 +725,18 @@ end subroutine compute_derivs
 #endif
 #endif
             ! compute the imbalance
-            ! call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-            ! call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
+            ! call MPI_Allreduce(elapsed_time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+            ! call MPI_Allreduce(elapsed_time, min_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
             ! if (id == 0) then
             !     print*,'Imbalance: ',(max_time - min_time) * 100 / max_time
             ! end if
-            call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
-            call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(ks_accumulator_local, ks_accumulator, 1, MPI_DOUBLE_PRECISION, MPI_SUM, geograd_comm_world, error)
+            call MPI_Allreduce(intersect_length_local, intersect_length, 1, MPI_DOUBLE_PRECISION, MPI_SUM, & 
+                               geograd_comm_world, error)
 #ifdef USE_COMPLEX
-            call MPI_Allreduce(real(cur_min_dist), mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(real(cur_min_dist), mindist, 1, MPI_DOUBLE, MPI_MIN, geograd_comm_world, error)
 #else
-            call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, error)
+            call MPI_Allreduce(cur_min_dist, mindist, 1, MPI_DOUBLE, MPI_MIN, geograd_comm_world, error)
 #endif
             if (mindist_in /= second_pass_flag) then
                 KS = (1 / rho) * log(ks_accumulator) - mindist_in
@@ -749,15 +755,15 @@ end subroutine compute_derivs
              timings_temp(2) = loop_time
              timings_temp(3) = reduce_time
              timings_temp(4) = overall_time
-             call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, error)
-             call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, error)
+             call MPI_Reduce(timings_temp, timings, 4, MPI_DOUBLE_PRECISION, MPI_MAX, 0, geograd_comm_world, error)
+             call MPI_Reduce(loop_time, min_loop_time, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, geograd_comm_world, error)
              ! compute avg utilization instead of max under utilization
              unbalance = (min_loop_time / n_procs) / timings(2) * 100
              ! unbalance = (timings(2) - min_loop_time)/timings(2)*100
-             ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-             ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, error)
-             ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
-             ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, error)
+             ! call MPI_Allreduce(loop_time, loop_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+             ! call MPI_Allreduce(reduce_time, min_reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MIN, geograd_comm_world, error)
+             ! call MPI_Allreduce(reduce_time, reduce_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
+             ! call MPI_Allreduce(overall_time, overall_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, geograd_comm_world, error)
 #endif
 #endif
         end do

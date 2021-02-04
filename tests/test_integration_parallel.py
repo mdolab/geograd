@@ -21,11 +21,11 @@ def custom_assert(self, truth, approx, base_tol=1e-7):
         assert_almost_equal(truth, approx, decimal=7)
 
 def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, objp2, smp0, smp1, smp2, n, objtol=1000):
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         perim = result[1]
 
         # test derivs
-        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         A1_grad = result2[11]
         B1_grad = result2[12]
         C1_grad = result2[13]
@@ -47,7 +47,7 @@ def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, obj
             objp0cs = objp0 + offsetdir1*cseps*1j
             objp1cs = objp1 + offsetdir1*cseps*1j
             objp2cs = objp2 + offsetdir1*cseps*1j
-            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10, objtol)
+            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
             gradcs = np.imag((rescs[1] - perim)) / cseps
             gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
 
@@ -62,7 +62,7 @@ def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, obj
             smp0cs = smp0 + offsetdir2*cseps*1j
             smp1cs = smp1 + offsetdir2*cseps*1j
             smp2cs = smp2 + offsetdir2*cseps*1j
-            rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10, objtol)
+            rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
             gradcs = np.imag((rescs[1] - perim)) / cseps
             gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
 
@@ -72,11 +72,11 @@ def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, obj
         testcase.assertGreater(max_abs_der, 1e-8)
 
 def helper_test_derivatives_translate_object_fd(testcase, objp0, objp1, objp2, smp0, smp1, smp2, direction, value, test_first=True, objtol=1000):
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         perim = result[1]
 
         # test derivs
-        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         A1_grad = result2[11]
         B1_grad = result2[12]
         C1_grad = result2[13]
@@ -94,7 +94,7 @@ def helper_test_derivatives_translate_object_fd(testcase, objp0, objp1, objp2, s
             objp0fd = objp0 + offsetdir1*fdeps
             objp1fd = objp1 + offsetdir1*fdeps
             objp2fd = objp2 + offsetdir1*fdeps
-            resfd = g.compute(objp0fd, objp1fd, objp2fd, smp0, smp1, smp2, 0.001, 10, objtol)
+            resfd = g.compute(objp0fd, objp1fd, objp2fd, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
             gradfd = (resfd[1] - perim) / fdeps
             gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
 
@@ -106,7 +106,7 @@ def helper_test_derivatives_translate_object_fd(testcase, objp0, objp1, objp2, s
         smp0fd = smp0 + offsetdir2*fdeps
         smp1fd = smp1 + offsetdir2*fdeps
         smp2fd = smp2 + offsetdir2*fdeps
-        resfd = g.compute(objp0, objp1, objp2, smp0fd, smp1fd, smp2fd, 0.001, 10, objtol)
+        resfd = g.compute(objp0, objp1, objp2, smp0fd, smp1fd, smp2fd, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         gradfd = (resfd[1] - perim) / fdeps
         gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
 
@@ -115,11 +115,11 @@ def helper_test_derivatives_translate_object_fd(testcase, objp0, objp1, objp2, s
 
 
 def helper_test_derivatives_translate_object_given(testcase, objp0, objp1, objp2, smp0, smp1, smp2, direction, value, test_first=True, tol=1e-7, objtol=1000):
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         perim = result[1]
 
         # test derivs
-        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol)
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         A1_grad = result2[11]
         B1_grad = result2[12]
         C1_grad = result2[13]
@@ -137,7 +137,7 @@ def helper_test_derivatives_translate_object_given(testcase, objp0, objp1, objp2
             objp0cs = objp0 + offsetdir1*cseps*1j
             objp1cs = objp1 + offsetdir1*cseps*1j
             objp2cs = objp2 + offsetdir1*cseps*1j
-            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10, objtol)
+            rescs = gcs.compute(objp0cs, objp1cs, objp2cs, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
             gradcs = np.imag((rescs[1] - perim)) / cseps
             gradexact = np.sum(offsetdir1*partial_sum_1.reshape(3,1))
 
@@ -149,7 +149,7 @@ def helper_test_derivatives_translate_object_given(testcase, objp0, objp1, objp2
         smp0cs = smp0 + offsetdir2*cseps*1j
         smp1cs = smp1 + offsetdir2*cseps*1j
         smp2cs = smp2 + offsetdir2*cseps*1j
-        rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10, objtol)
+        rescs = gcs.compute(objp0, objp1, objp2, smp0cs, smp1cs, smp2cs, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
         gradcs = np.imag((rescs[1] - perim)) / cseps
         gradexact = np.sum(offsetdir2*partial_sum_2.reshape(3,1))
 
@@ -157,8 +157,8 @@ def helper_test_derivatives_translate_object_given(testcase, objp0, objp1, objp2
         custom_assert(testcase, gradexact, value, tol)
 def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None, indices_2=None, method='cs'):
         maxdim = np.max(np.maximum(np.maximum(A2.max(axis=1), B2.max(axis=1)), C2.max(axis=1)) - np.minimum(np.minimum(A2.min(axis=1), B2.min(axis=1)), C2.min(axis=1)))
-        result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho, maxdim)
-        result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho, maxdim)
+        result = g.compute(A1, B1, C1, A2, B2, C2, 1.0, rho, maxdim, MPI.COMM_WORLD.py2f())
+        result2 = g.compute_derivs(A1, B1, C1, A2, B2, C2, result[2], rho, maxdim, MPI.COMM_WORLD.py2f())
         ks_base = result2[0]
         A1_grad = result2[5]
         B1_grad = result2[6]
@@ -220,8 +220,8 @@ def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None
                         C1_alt[k,jind] = C1_alt[k,jind] + cseps*1.0j
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C1_grad[k,jind]
-                    resultcs = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim)
-                    resultcs2 = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultcs[2], rho, maxdim)
+                    resultcs = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim, MPI.COMM_WORLD.py2f())
+                    resultcs2 = gcs.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultcs[2], rho, maxdim, MPI.COMM_WORLD.py2f())
                     ks_cs = resultcs2[0]
                     gradcs_ks = np.imag((ks_cs - ks_base)) / cseps
 
@@ -253,8 +253,8 @@ def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C1_grad[k,jind]
 
-                    resultfd = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim)
-                    resultfd2 = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultfd[2], rho, maxdim)
+                    resultfd = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, 1.0, rho, maxdim, MPI.COMM_WORLD.py2f())
+                    resultfd2 = g.compute(A1_alt, B1_alt, C1_alt, A2, B2, C2, resultfd[2], rho, maxdim, MPI.COMM_WORLD.py2f())
                     ks_fd = resultfd2[0]
                     gradfd_ks = (ks_fd - ks_base) / fdeps
 
@@ -305,8 +305,8 @@ def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C2_grad[k,jind]
 
-                    resultcs = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim)
-                    resultcs2 = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultcs[2], rho, maxdim)
+                    resultcs = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim, MPI.COMM_WORLD.py2f())
+                    resultcs2 = gcs.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultcs[2], rho, maxdim, MPI.COMM_WORLD.py2f())
                     ks_cs = resultcs2[0]
                     gradcs_ks = np.imag((ks_cs - ks_base)) / cseps
 
@@ -338,8 +338,8 @@ def helpter_test_derivs_cs(A1, B1, C1, A2, B2, C2, rho, testcase, indices_1=None
                         # 5) sum the contributions from each point from the analytic gradient and compare
                         exact_grad_ks += C2_grad[k,jind]
 
-                    resultfd = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim)
-                    resultfd2 = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultfd[2], rho, maxdim)
+                    resultfd = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, 1.0, rho, maxdim, MPI.COMM_WORLD.py2f())
+                    resultfd2 = g.compute(A1, B1, C1, A2_alt, B2_alt, C2_alt, resultfd[2], rho, maxdim, MPI.COMM_WORLD.py2f())
                     ks_fd = resultfd2[0]
                     gradfd_ks = (ks_fd - ks_base) / fdeps
 
@@ -360,28 +360,28 @@ class TestIntersectTrivial(unittest.TestCase):
         a2 = np.repeat(np.array([-1.0, 0.5, -0.1]),2).reshape(3,2)
         b2 = np.repeat(np.array([1.0, 0.5, -0.1]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 5.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(result[1], 0.5*4, 10)
 
     def test_intersect_2_in_1(self):
         a2 = np.repeat(np.array([0.75, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.25, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.25, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(result[1], 1/3*4, 10)
 
     def test_intersect_right_edge(self):
         a2 = np.repeat(np.array([1.0, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([0.0, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.5, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
     def test_intersect_left_edge(self):
         a2 = np.repeat(np.array([0.5, 0.5, -2.0]),2).reshape(3,2)
         b2 = np.repeat(np.array([-0.5, 0.5, -2.0]),2).reshape(3,2)
         c2 = np.repeat(np.array([0.0, 0.5, 1.0]),2).reshape(3,2)
-        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0)
+        result = g.compute(self.a1, self.b1, self.c1, a2, b2, c2, 1.0, 10, 1000.0, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(result[1], 1/6*4, 10)
 
 class MinDistSTLTestCase1(unittest.TestCase):
@@ -406,16 +406,57 @@ class MinDistSTLTestCase1(unittest.TestCase):
         self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(2.33166, result[2], 4)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(-2.3197215104930256, result2[0], 8)
     
     def test_derivs(self):
         # closepoint is at 40, 47
         helpter_test_derivs_cs(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 300, self, [40, 10, 91], [47, 5, 90])
 
+
+class MinDistSTLTestCase1_SplitComm(unittest.TestCase):
+    N_PROCS = 4
+
+    def setUp(self):
+        self.base_path = os.path.dirname(os.path.abspath(__file__))
+        test_data_path = self.base_path + r'/inputFiles'
+
+        # the 'surface'  mesh is a the same blob file offset by 3 units in the y direction
+        surface_mesh = mesh.Mesh.from_file(test_data_path+'/blob_offset_y3.stl').vectors
+        object_mesh = mesh.Mesh.from_file(test_data_path+'/blob.stl').vectors
+        self.smSize = surface_mesh[:,0,:].shape[0]
+        self.smp0 = surface_mesh[:,0,:].transpose()
+        self.smp1 = surface_mesh[:,1,:].transpose()
+        self.smp2 = surface_mesh[:,2,:].transpose()
+
+        self.omSize = object_mesh[:,0,:].shape[0]
+        self.objp0 = object_mesh[:,0,:].transpose()
+        self.objp1 = object_mesh[:,1,:].transpose()
+        self.objp2 = object_mesh[:,2,:].transpose()
+        self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
+
+    def test_values_on_split_comm(self):
+        world_rank = MPI.COMM_WORLD.rank
+        world_size = MPI.COMM_WORLD.size 
+        if world_rank < 2:
+            color = 55
+            key = -world_rank
+        else:
+            color = 77
+            key = +world_rank
+        splitcomm = MPI.COMM_WORLD.Split(color, key)
+        self.assertEquals(splitcomm.size, 2)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim, splitcomm.py2f())
+        self.assertAlmostEqual(2.33166, result[2], 4)
+        self.assertAlmostEqual(0.0, result[1], 10)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim, splitcomm.py2f())
+        self.assertAlmostEqual(-2.3197215104930256, result2[0], 8)
+        result3 = g.compute_derivs(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim, splitcomm.py2f())
+        splitcomm.Free()
+    
 
 
 class MinDistSTLTestCase2(unittest.TestCase):
@@ -440,10 +481,10 @@ class MinDistSTLTestCase2(unittest.TestCase):
         self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(0.0178387, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(-0.013207541564420895, result2[0], 8)
 
     def test_derivs(self):
@@ -471,10 +512,10 @@ class MinDistSTLTestCase3(unittest.TestCase):
         self.maxdim = np.max(np.maximum(np.maximum(self.smp0.max(axis=1), self.smp1.max(axis=1)), self.smp2.max(axis=1)) - np.minimum(np.minimum(self.smp0.min(axis=1), self.smp1.min(axis=1)), self.smp2.min(axis=1)))
 
     def test_values(self):
-        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim)
+        result = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(0.02212236, result[2], 6)
         self.assertAlmostEqual(0.0, result[1], 10)
-        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim)
+        result2 = g.compute(self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, result[2], 300, self.maxdim, MPI.COMM_WORLD.py2f())
         self.assertAlmostEqual(-0.015189136030326717, result2[0], 8)
     
     def test_derivs(self):
@@ -505,10 +546,10 @@ class BisectSphereTestCase(unittest.TestCase):
         smp2 = surface_mesh[:,2,:].transpose()
 
         objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 0.00001]))
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
 
         custom_assert(self, result[1], np.pi*25., base_tol=5e-4)
-        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
         custom_assert(self, result2[1], np.pi*25., base_tol=5e-4)
 
         # pick a new offset
@@ -516,7 +557,7 @@ class BisectSphereTestCase(unittest.TestCase):
         offset = radius * 0.5
         
         objp0, objp1, objp2 = generate_plane(np.array([80., 0., 0.]), np.array([0., 80., 0.]), np.array([-40., -40., 1e-4+offset]))
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
         custom_assert(self, result[1], 2*np.pi*radius*np.sqrt(1-(offset/radius)**2), base_tol=5e-4)
         deriv = 2*np.pi*radius*(1-(offset/radius)**2)**(-1/2)*(-offset)/radius**2
         # the error is discretization error in the sphere, not necessarily error in the computed derivatives of the STL
@@ -529,11 +570,11 @@ class BisectPlaneTestCase(unittest.TestCase):
         
         objp0, objp1, objp2 = generate_plane(np.array([0., 0., 80.]), np.array([0., 80., 0.]), np.array([0.0, -40., -40]))
         smp0, smp1, smp2 = generate_plane(np.array([0., 1.5, 0.0]), np.array([20., 0., 1.]), np.array([-10., 0.0, 0.0]))
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
         custom_assert(self, result[1], 1.5, base_tol=1e-3)
 
         smp0, smp1, smp2 = generate_plane(np.array([0., 100, 0.0]), np.array([20., 0., 1.]), np.array([-10., -50.0, 0.0]))
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
         custom_assert(self, result[1], 80., base_tol=1e-3)
 
 class BisectCubeTestCase(unittest.TestCase):
@@ -551,7 +592,7 @@ class BisectCubeTestCase(unittest.TestCase):
         smp2 = surface_mesh[:,2,:].transpose()
 
         objp0, objp1, objp2 = generate_plane(np.array([0., 0., 60.]), np.array([0., 80., 0.]), np.array([0.01, -40., -40]))
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
         custom_assert(self, result[1], 16., base_tol=1e-7)
         helper_test_derivatives_translate_object_given(self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[1., 0., 0.]]), 0.0, 100)
 
@@ -576,7 +617,7 @@ class OffsetCubesTestCase(unittest.TestCase):
         objp0 = object_mesh[:,0,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)
         objp1 = object_mesh[:,1,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)
         objp2 = object_mesh[:,2,:].transpose() + np.array([0.001, 0.001, 0.001]).reshape(3,1)           
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
 
         custom_assert(self, result[1], 4*np.sqrt(2)+2*2, base_tol=1e-6)
         helper_test_derivatives_translate_objects_random(self, objp0, objp1, objp2, smp0, smp1, smp2, 10)
@@ -608,7 +649,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         objp0 = object_mesh[:,0,:].transpose() + offsetvec
         objp1 = object_mesh[:,1,:].transpose() + offsetvec
         objp2 = object_mesh[:,2,:].transpose() + offsetvec            
-        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 1000)
+        result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 1000, MPI.COMM_WORLD.py2f())
 
         exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
         custom_assert(self, result[1], 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2), base_tol=5e-3)
@@ -646,7 +687,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
             objp0 = object_mesh[:,0,:].transpose() + offsetvec
             objp1 = object_mesh[:,1,:].transpose() + offsetvec
             objp2 = object_mesh[:,2,:].transpose() + offsetvec            
-            result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100)
+            result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 100, MPI.COMM_WORLD.py2f())
 
             if offsetmagnitude < 1.95 * sphere_rad:
                 # intersecting
