@@ -46,6 +46,7 @@ setup(name='geograd',
       ],
       extras_require={
         "testing":  ['numpy>=1.16','numpy-stl','openmdao>=2.1','mpi4py>=3.0'],
+        "docs": ["sphinx-mdolab-theme"],
        },
       classifiers=[
         "Operating System :: Linux",
