@@ -2,24 +2,23 @@ module triangles
     implicit none
     real(kind=8), parameter :: one = 1.0
     real(kind=8), parameter :: zero = 0.0
-    contains
+contains
 
     subroutine dot_prod(d, v, w)
         implicit none
         real(kind=8), dimension(3), intent(in) :: v, w
         real(kind=8), intent(out) :: d
-        d = v(1)*w(1)+v(2)*w(2)+v(3)*w(3)
+        d = v(1) * w(1) + v(2) * w(2) + v(3) * w(3)
     end subroutine dot_prod
 
     subroutine cross_prod(x, u, v)
         implicit none
         real(kind=8), dimension(3), intent(in) :: u, v
         real(kind=8), dimension(3), intent(out) :: x
-        x(1) = u(2)*v(3)-u(3)*v(2)
-        x(2) = u(3)*v(1)-u(1)*v(3)
-        x(3) = u(1)*v(2)-u(2)*v(1)
+        x(1) = u(2) * v(3) - u(3) * v(2)
+        x(2) = u(3) * v(1) - u(1) * v(3)
+        x(3) = u(1) * v(2) - u(2) * v(1)
     end subroutine cross_prod
-
 
     subroutine point_tri(a, b, c, p, d)
         implicit none
@@ -41,7 +40,7 @@ module triangles
             dummydiff = diff
             call dot_prod(d, diff, dummydiff)
             d = sqrt(d)
-            return 
+            return
         end if
 
         ! check if P in vertex region outside B
@@ -58,7 +57,7 @@ module triangles
         end if
 
         ! check if P in edge region of AB, if so return projection of P onto AB
-        vc = d1*d4 - d3*d2
+        vc = d1 * d4 - d3 * d2
         if (vc <= zero .AND. d1 >= zero .AND. d3 <= zero) then
             v = d1 / (d1 - d3)
             closepoint = a + v * ab ! barycentric coordinates (1-v,v,0)
@@ -66,9 +65,9 @@ module triangles
             dummydiff = diff
             call dot_prod(d, diff, dummydiff)
             d = sqrt(d)
-            return 
+            return
         end if
-        
+
         ! Check if P in vertex region C
         cp = p - c
         call dot_prod(d5, ab, cp)
@@ -83,8 +82,8 @@ module triangles
         end if
 
         ! check if P in edge region of AC, if so, return proj(P,AC)
-        vb = d5*d2 - d1*d6
-        if (vb <= zero .AND. d2 >= zero .AND. d6 <=zero) then
+        vb = d5 * d2 - d1 * d6
+        if (vb <= zero .AND. d2 >= zero .AND. d6 <= zero) then
             w = d2 / (d2 - d6)
             closepoint = a + w * ac ! barycentric (1-w, 0, w)
             diff = closepoint - p
@@ -95,8 +94,8 @@ module triangles
         end if
 
         ! Check if P in edge region of BC, if so, return proj(P,BC)
-        va = d3*d6 - d5*d4
-        if (va <= zero .AND. (d4-d3) >= zero .AND. (d5-d6) >= zero) then
+        va = d3 * d6 - d5 * d4
+        if (va <= zero .AND. (d4 - d3) >= zero .AND. (d5 - d6) >= zero) then
             w = (d4 - d3) / ((d4 - d3) + (d5 - d6))
             closepoint = b + w * (c - b) ! barycentric (0, 1-w, w)
             diff = closepoint - p
@@ -116,7 +115,7 @@ module triangles
         call dot_prod(d, diff, dummydiff)
         d = sqrt(d)
         return
-        
+
     end subroutine point_tri
 
     subroutine clamp(n, min, max)
@@ -170,22 +169,22 @@ module triangles
             else
                 ! General non-degenerate case
                 call dot_prod(b, d1, d2)
-                denom = a*e - b*b
+                denom = a * e - b * b
                 if (denom /= zero) then
-                    s = (b*f - c*e) / denom
+                    s = (b * f - c * e) / denom
                     call clamp(s, zero, one)
                 else
                     s = zero
                 end if
 
-                t = (b*s + f)/e
+                t = (b * s + f) / e
                 if (t < zero) then
                     t = zero
                     s = -c / a
                     call clamp(s, zero, one)
                 else if (t > one) then
                     t = one
-                    s = (b - c)/a
+                    s = (b - c) / a
                     call clamp(s, zero, one)
                 end if
             end if
@@ -207,13 +206,13 @@ module triangles
 
         if (a(1) > a(2)) then
             if (a(1) > a(3)) then
-                maxind = 1 
+                maxind = 1
                 return
             else
                 maxind = 3
                 return
             end if
-        elseif (a(2)>a(3)) then
+        elseif (a(2) > a(3)) then
             maxind = 2
             return
         else
@@ -231,14 +230,14 @@ module triangles
         real(kind=8) :: d1, da1, db1, dc1, pa1, pb1, pc1, t11, t12, t1high, t1low, dt
         real(kind=8) :: d2, da2, db2, dc2, pa2, pb2, pc2, t21, t22, t2high, t2low
         integer :: lone_vertex_1, lone_vertex_2, maxind
-        call cross_prod(n2, (b2-a2), (c2-a2))
+        call cross_prod(n2, (b2 - a2), (c2 - a2))
         call dot_prod(d2, n2, a2)
         d2 = -d2
-        
+
         call dot_prod(da1, n2, a1)
         da1 = da1 + d2
         call dot_prod(db1, n2, b1)
-        db1 = db1 + d2        
+        db1 = db1 + d2
         call dot_prod(dc1, n2, c1)
         dc1 = dc1 + d2
 
@@ -249,16 +248,16 @@ module triangles
             length = 0.0
             return
         end if
-        
+
         ! general case
-        call cross_prod(n1, (b1-a1), (c1-a1))
+        call cross_prod(n1, (b1 - a1), (c1 - a1))
         call dot_prod(d1, n1, a1)
         d1 = -d1
 
         call dot_prod(da2, n1, a2)
         da2 = da2 + d1
         call dot_prod(db2, n1, b2)
-        db2 = db2 + d1        
+        db2 = db2 + d1
         call dot_prod(dc2, n1, c2)
         dc2 = dc2 + d1
 
@@ -269,7 +268,6 @@ module triangles
             length = 0.0
             return
         end if
-
 
         call cross_prod(d, n1, n2)
         ! absd = abs(d)
@@ -305,7 +303,7 @@ module triangles
             t12 = pc1 + (pa1 - pc1) * dc1 / (dc1 - da1)
         elseif (lone_vertex_1 == 2) then
             t11 = pa1 + (pb1 - pa1) * da1 / (da1 - db1)
-            t12 = pc1 + (pb1 - pc1) * dc1 / (dc1 - db1) 
+            t12 = pc1 + (pb1 - pc1) * dc1 / (dc1 - db1)
         else
             t11 = pa1 + (pc1 - pa1) * da1 / (da1 - dc1)
             t12 = pb1 + (pc1 - pb1) * db1 / (db1 - dc1)
@@ -339,7 +337,7 @@ module triangles
             t22 = pc2 + (pa2 - pc2) * dc2 / (dc2 - da2)
         elseif (lone_vertex_2 == 2) then
             t21 = pa2 + (pb2 - pa2) * da2 / (da2 - db2)
-            t22 = pc2 + (pb2 - pc2) * dc2 / (dc2 - db2) 
+            t22 = pc2 + (pb2 - pc2) * dc2 / (dc2 - db2)
         else
             t21 = pa2 + (pc2 - pa2) * da2 / (da2 - dc2)
             t22 = pb2 + (pc2 - pb2) * db2 / (db2 - dc2)
@@ -366,7 +364,7 @@ module triangles
             return
         else
             dt = min(t1high, t2high) - max(t1low, t2low)
-            length = dt/sqrt((d(1)**2 + d(2)**2 + d(3)**2))
+            length = dt / sqrt((d(1)**2 + d(2)**2 + d(3)**2))
             return
         end if
     end subroutine intersect
