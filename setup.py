@@ -3,14 +3,15 @@ import re
 
 __version__ = re.findall(
     r"""__version__ = ["']+([0-9\.]*)["']+""",
-    open("geograd/__init__.py").read(),
+    open('geograd/__init__.py').read(),
 )[0]
 
-setup(
-    name="geograd",
-    version=__version__,
-    description="Geograd is a package for efficiency computing triangulated surface constraints in parallel",
-    long_description="""Documentation page TBA
+setup(name='geograd',
+      version=__version__,
+
+
+      description="Geograd is a package for efficiency computing triangulated surface constraints in parallel",
+      long_description="""Documentation page TBA
       Citation
       --------
       Please cite geograd in any publication for which you find it useful.
@@ -28,20 +29,26 @@ setup(
       year = {2020}
     }
       """,
-    long_description_content_type="text/markdown",
-    keywords="geometric constraints optimization",
-    author="",
-    author_email="",
-    url="https://github.com/mdolab/geograd",
-    license="None",
-    packages=[
-        "geograd",
-    ],
-    package_data={"geograd": ["*.so"]},
-    install_requires=["numpy>=1.16"],
-    extras_require={
-        "testing": ["numpy>=1.16", "numpy-stl", "openmdao>=2.1", "mpi4py>=3.0"],
+      long_description_content_type="text/markdown",
+      keywords='geometric constraints optimization',
+      author='',
+      author_email='',
+      url='https://github.com/mdolab/geograd',
+      license='None',
+      packages=[
+          'geograd',
+      ],
+      package_data={
+          'geograd': ['*.so']
+      },
+      install_requires=[
+        "numpy>=1.16"
+      ],
+      extras_require={
+        "testing":  ['numpy>=1.16','numpy-stl','openmdao>=2.1','mpi4py>=3.0'],
         "docs": ["sphinx-mdolab-theme"],
-    },
-    classifiers=["Operating System :: Linux", "Programming Language :: Python, Fortran"],
-)
+       },
+      classifiers=[
+        "Operating System :: Linux",
+        "Programming Language :: Python, Fortran"]
+      )
