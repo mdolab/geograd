@@ -73,6 +73,6 @@ triangles_db.mod: tapenade/triangles_db.f90
 	$(FCOMPILER_ALL_FLAGS) -c tapenade/triangles_db.f90
 	rm triangles_db.o
 
-tapenade/triangles_db.f90: src/triangles.F90
+tapenade: src/triangles.F90
 	tapenade src/triangles.F90 -d -b -root point_tri -root line_line -root intersect
 	mv triangles_db.f90 tapenade/triangles_db.f90
