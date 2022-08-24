@@ -30,7 +30,7 @@ clean:
 test:
 	testflo -n 4
 
-default_build: python3 python3_complex
+default_build: triangles_b.mod python3 python3_complex
 
 pyf: tapenade/triangles_b.f90 src/triangles.F90 src/geograd_parallel.F90 src/geograd.F90
 	$(F2PY) tapenade/triangles_b.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 -m geograd -h f2py/geograd.pyf
