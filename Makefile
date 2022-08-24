@@ -30,7 +30,7 @@ clean:
 test:
 	testflo -n 4
 
-default_build: triangles_b.mod python3 python3_complex
+default_build: python3 python3_complex
 
 pyf: tapenade/triangles_b.f90 src/triangles.F90 src/geograd_parallel.F90 src/geograd.F90
 	$(F2PY) tapenade/triangles_b.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 -m geograd -h f2py/geograd.pyf
@@ -49,7 +49,7 @@ python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/
 	$(F2PY) $(F2PY_ALL_FLAGS) -DUSE_COMPLEX -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90 complex/geograd_parallel_complex.F90
 	mv *.so geograd/libgeograd_complex.so
 
-python3: f2py/geograd.pyf src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90
+python3: f2py/geograd.pyf src/triangles.F90 src/geograd.F90 triangles_b.mod src/geograd_parallel.F90
 	$(F2PY) $(F2PY_ALL_FLAGS) -DINSTRUMENTATION -c f2py/geograd.pyf src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90
 	mv *.so geograd/libgeograd.so
 
