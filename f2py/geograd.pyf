@@ -3,20 +3,8 @@
 
 python module libgeograd ! in 
     interface  ! in :geograd
-        module triangles_db ! in :geograd:tapenade/triangles_db.f90
-            subroutine point_tri_d(a,ad,b,bd,c,cd,p,pd,d,dd) ! in :geograd:tapenade/triangles_db.f90:triangles_db
-                real(kind=8) dimension(3),intent(in) :: a
-                real(kind=8) dimension(3),intent(in) :: ad
-                real(kind=8) dimension(3),intent(in) :: b
-                real(kind=8) dimension(3),intent(in) :: bd
-                real(kind=8) dimension(3),intent(in) :: c
-                real(kind=8) dimension(3),intent(in) :: cd
-                real(kind=8) dimension(3),intent(in) :: p
-                real(kind=8) dimension(3),intent(in) :: pd
-                real(kind=8) intent(out) :: d
-                real(kind=8) intent(out) :: dd
-            end subroutine point_tri_d
-            subroutine point_tri_b(a,ab0,b,bb,c,cb,p,pb,d,db) ! in :geograd:tapenade/triangles_db.f90:triangles_db
+        module triangles_b ! in :geograd:tapenade/triangles_b.f90
+            subroutine point_tri_b(a,ab0,b,bb,c,cb,p,pb,d,db) ! in :geograd:tapenade/triangles_b.f90:triangles_b
                 real(kind=8) dimension(3),intent(in) :: a
                 real(kind=8) dimension(3), intent(out) :: ab0
                 real(kind=8) dimension(3),intent(in) :: b
@@ -28,19 +16,7 @@ python module libgeograd ! in
                 real(kind=8),intent(out) :: d
                 real(kind=8),intent(in) :: db
             end subroutine point_tri_b
-            subroutine line_line_d(p1,p1d,q1,q1d,p2,p2d,q2,q2d,d,dd) ! in :geograd:tapenade/triangles_db.f90:triangles_db
-                real(kind=8) dimension(3),intent(in) :: p1
-                real(kind=8) dimension(3),intent(in) :: p1d
-                real(kind=8) dimension(3),intent(in) :: q1
-                real(kind=8) dimension(3),intent(in) :: q1d
-                real(kind=8) dimension(3),intent(in) :: p2
-                real(kind=8) dimension(3),intent(in) :: p2d
-                real(kind=8) dimension(3),intent(in) :: q2
-                real(kind=8) dimension(3),intent(in) :: q2d
-                real(kind=8) intent(out) :: d
-                real(kind=8) intent(out) :: dd
-            end subroutine line_line_d
-            subroutine line_line_b(p1,p1b,q1,q1b,p2,p2b,q2,q2b,d,db) ! in :geograd:tapenade/triangles_db.f90:triangles_db
+            subroutine line_line_b(p1,p1b,q1,q1b,p2,p2b,q2,q2b,d,db) ! in :geograd:tapenade/triangles_b.f90:triangles_b
                 real(kind=8) dimension(3),intent(in) :: p1
                 real(kind=8) dimension(3),intent(out) :: p1b
                 real(kind=8) dimension(3),intent(in) :: q1
@@ -52,23 +28,7 @@ python module libgeograd ! in
                 real(kind=8) intent(out):: d
                 real(kind=8) intent(in):: db
             end subroutine line_line_b
-            subroutine intersect_d(a1,a1d,b1,b1d,c1,c1d,a2,a2d,b2,b2d,c2,c2d,length,lengthd) ! in :geograd:tapenade/triangles_db.f90:triangles_db
-                real(kind=8) dimension(3),intent(in) :: a1
-                real(kind=8) dimension(3),intent(in) :: a1d
-                real(kind=8) dimension(3),intent(in) :: b1
-                real(kind=8) dimension(3),intent(in) :: b1d
-                real(kind=8) dimension(3),intent(in) :: c1
-                real(kind=8) dimension(3),intent(in) :: c1d
-                real(kind=8) dimension(3),intent(in) :: a2
-                real(kind=8) dimension(3),intent(in) :: a2d
-                real(kind=8) dimension(3),intent(in) :: b2
-                real(kind=8) dimension(3),intent(in) :: b2d
-                real(kind=8) dimension(3),intent(in) :: c2
-                real(kind=8) dimension(3),intent(in) :: c2d
-                real(kind=8) intent(out) :: length
-                real(kind=8) intent(out) :: lengthd
-            end subroutine intersect_d
-            subroutine intersect_b(a1,a1b,b1,b1b,c1,c1b,a2,a2b,b2,b2b,c2,c2b,length,lengthb) ! in :geograd:tapenade/triangles_db.f90:triangles_db
+            subroutine intersect_b(a1,a1b,b1,b1b,c1,c1b,a2,a2b,b2,b2b,c2,c2b,length,lengthb) ! in :geograd:tapenade/triangles_b.f90:triangles_b
                 real(kind=8) dimension(3),intent(in) :: a1
                 real(kind=8) dimension(3), intent(out) :: a1b
                 real(kind=8) dimension(3),intent(in) :: b1
@@ -84,7 +44,7 @@ python module libgeograd ! in
                 real(kind=8), intent(out) :: length
                 real(kind=8),intent(in) :: lengthb
             end subroutine intersect_b
-        end module triangles_db
+        end module triangles_b
         module triangles ! in :geograd:src/triangles.F90
             subroutine point_tri(a,b,c,p,d) ! in :geograd:src/triangles.F90:triangles
                 real(kind=8) dimension(3),intent(in) :: a
@@ -112,7 +72,7 @@ python module libgeograd ! in
         end module triangles
         module geograd ! in :geograd:src/geograd.F90
             subroutine compute_derivs(ks,intersect_length,mindist,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,dpda1,dpdb1,dpdc1,dpda2,dpdb2,dpdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho) ! in :geograd:src/geograd.F90:geograd
-                use triangles_db
+                use triangles_b
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
                 real(kind=8) intent(out) :: mindist
@@ -158,7 +118,7 @@ python module libgeograd ! in
         end module geograd
         module geograd_parallel ! in :geograd:src/geograd_parallel.F90
             subroutine compute_derivs(ks,intersect_length,mindist,timings,unbalance,dksda1,dksdb1,dksdc1,dksda2,dksdb2,dksdc2,dpda1,dpdb1,dpdc1,dpda2,dpdb2,dpdc2,a1,b1,c1,a2,b2,c2,n1,n2,mindist_in,rho,obj_tol_in,geograd_comm_world) ! in :geograd:src/geograd_parallel.F90:geograd
-                use triangles_db
+                use triangles_b
                 real(kind=8) intent(out) :: ks
                 real(kind=8) intent(out) :: intersect_length
                 real(kind=8) intent(out) :: mindist

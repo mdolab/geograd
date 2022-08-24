@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 from geograd import triangles as t
-from geograd import triangles_db as tdb
+from geograd import triangles_b as tb
 from geograd import triangles_complex as tcs
 
 h = 1e-15
@@ -9,7 +9,7 @@ h = 1e-15
 
 def helper_test_point_tri_cs(a, b, c, p, testcase):
     d_base = t.point_tri(a, b, c, p)
-    rev_derivs = tdb.point_tri_b(a, b, c, p, 1.0)
+    rev_derivs = tb.point_tri_b(a, b, c, p, 1.0)
 
     # test derivs wrt a
     acs = a + np.array([(0 + 1j) * h, 0.0, 0.0])
@@ -90,7 +90,7 @@ def helper_test_point_tri_cs(a, b, c, p, testcase):
 
 def helper_test_line_line_cs(p1, q1, p2, q2, testcase):
     d_base = t.line_line(p1, q1, p2, q2)
-    rev_derivs = tdb.line_line_b(p1, q1, p2, q2, 1.0)
+    rev_derivs = tb.line_line_b(p1, q1, p2, q2, 1.0)
 
     # test derivs wrt p1
     p1cs = p1 + np.array([(0 + 1j) * h, 0.0, 0.0])
@@ -171,7 +171,7 @@ def helper_test_line_line_cs(p1, q1, p2, q2, testcase):
 
 def helper_test_intersect_cs(a1, b1, c1, a2, b2, c2, testcase):
     d_base = t.intersect(a1, b1, c1, a2, b2, c2)
-    rev_derivs = tdb.intersect_b(a1, b1, c1, a2, b2, c2, 1.0)
+    rev_derivs = tb.intersect_b(a1, b1, c1, a2, b2, c2, 1.0)
 
     # test derivs wrt a1
     a1cs = a1 + np.array([(0 + 1j) * h, 0.0, 0.0])

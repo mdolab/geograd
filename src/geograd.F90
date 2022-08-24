@@ -39,7 +39,7 @@ contains
 #ifndef USE_COMPLEX
     subroutine compute_derivs(KS, intersect_length, mindist, dKSdA1, dKSdB1, dKSdC1, dKSdA2, dKSdB2, dKSdC2, &
                               dPdA1, dPdB1, dPdC1, dPdA2, dPdB2, dPdC2, A1, B1, C1, A2, B2, C2, n1, n2, mindist_in, rho)
-        use triangles_db
+        use triangles_b
         implicit none
         integer, intent(in) :: n1, n2 ! array dimensions of first and second triangulated surfaces
         real(kind=8), dimension(3, n1), INTENT(in) :: A1, B1, C1 ! first triangulated surface vertices
