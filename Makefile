@@ -32,8 +32,8 @@ test:
 
 default_build: python3 python3_complex
 
-pyf: tapenade/triangles_db.f90 src/triangles.F90 src/geograd_parallel.F90 src/geograd.F90
-	$(F2PY) tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 -m geograd -h f2py/geograd.pyf
+pyf: tapenade/triangles_d.f90 tapenade/triangles_b.f90 src/triangles.F90 src/geograd_parallel.F90 src/geograd.F90
+	$(F2PY) tapenade/triangles_d.f90 tapenade/triangles_b.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 -m geograd -h f2py/geograd.pyf
 
 pyf_complex: complex/triangles_complex.F90 complex/geograd_complex.F90
 	$(F2PY) complex/triangles_complex.F90 complex/geograd_complex.F90 -m geograd_complex -h f2py/geograd_complex.pyf
@@ -49,8 +49,8 @@ python3_complex: complex/triangles_complex.F90 complex/geograd_complex.F90 f2py/
 	$(F2PY) $(F2PY_ALL_FLAGS) -DUSE_COMPLEX -c f2py/geograd_complex.pyf complex/triangles_complex.F90 complex/geograd_complex.F90 complex/complexify.F90 complex/geograd_parallel_complex.F90
 	mv *.so geograd/libgeograd_complex.so
 
-python3: tapenade/triangles_db.f90 f2py/geograd.pyf src/triangles.F90 src/geograd.F90 triangles_db.mod src/geograd_parallel.F90
-	$(F2PY) $(F2PY_ALL_FLAGS) -DINSTRUMENTATION -c f2py/geograd.pyf tapenade/triangles_db.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 tapenade/adBuffer.f tapenade/adStack.c
+python3: f2py/geograd.pyf src/triangles.F90 src/geograd.F90 triangles_d.mod triangles_b.mod src/geograd_parallel.F90
+	$(F2PY) $(F2PY_ALL_FLAGS) -DINSTRUMENTATION -c f2py/geograd.pyf tapenade/triangles_d.f90 tapenade/triangles_b.f90 src/triangles.F90 src/geograd.F90 src/geograd_parallel.F90 tapenade/adBuffer.f tapenade/adStack.c
 	mv *.so geograd/libgeograd.so
 
 complex/triangles_complex.F90: src/triangles.F90
@@ -69,10 +69,16 @@ complexify.mod: complex/complexify.F90
 	$(FCOMPILER_ALL_FLAGS) -c complex/complexify.F90
 	rm complexify.o
 
-triangles_db.mod: tapenade/triangles_db.f90
-	$(FCOMPILER_ALL_FLAGS) -c tapenade/triangles_db.f90
-	rm triangles_db.o
+triangles_d.mod: tapenade/triangles_d.f90
+	$(FCOMPILER_ALL_FLAGS) -c tapenade/triangles_d.f90
+	rm triangles_d.o
 
-tapenade/triangles_db.f90: src/triangles.F90
-	tapenade src/triangles.F90 -d -b -root point_tri -root line_line -root intersect
-	mv triangles_db.f90 tapenade/triangles_db.f90
+triangles_b.mod: tapenade/triangles_b.f90
+	$(FCOMPILER_ALL_FLAGS) -c tapenade/triangles_b.f90
+	rm triangles_b.o
+
+tapenade: src/triangles.F90
+	tapenade src/triangles.F90 -d -root point_tri -root line_line -root intersect
+	tapenade src/triangles.F90 -b -root point_tri -root line_line -root intersect
+	mv triangles_d.f90 tapenade/triangles_d.f90
+	mv triangles_b.f90 tapenade/triangles_b.f90
