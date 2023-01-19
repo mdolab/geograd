@@ -29,10 +29,3 @@ B. J. Brelje, J. Anibal, A. Yildirim, C. A. Mader, and J. R. R. A. Martins. AIAA
 
 ## License
 GeoGrad is licensed under the Apache License, Version 2.0 (the "License"). See `LICENSE` for the full license.
-
-
-### Latest
-- Vectorized AABB tests to exclude swathes of computation
-- Tapenade for the main routines
-- Dynamic load balancing
-- Need to invent an optimization case where the load balancing actually changes
