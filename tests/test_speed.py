@@ -1,25 +1,12 @@
 import numpy as np
 import unittest
 from geograd import geograd_parallel as g
-from geograd import geograd_parallel_complex as gcs
 from stl import mesh
 import os
-
-h = 1e-15
 from mpi4py import MPI
 import time
 
-
-def custom_assert(self, truth, approx, base_tol=1e-7):
-    if np.abs(truth) > 0.1:
-        assert_rel_error(self, truth, approx, tolerance=base_tol)
-    elif np.abs(truth) > 1e-4:
-        assert_rel_error(self, truth, approx, tolerance=base_tol * 10)
-    elif np.abs(truth) > 5e-9:
-        assert_rel_error(self, truth, approx, tolerance=base_tol * 100)
-    else:
-        assert_almost_equal(truth, approx, decimal=7)
-
+h = 1e-15
 
 # class MinDistSTLTestCase1(unittest.TestCase):
 #     def setUp(self):

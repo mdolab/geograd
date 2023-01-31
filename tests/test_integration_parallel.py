@@ -1,27 +1,14 @@
+import os
 import numpy as np
 import unittest
+from numpy.testing import assert_almost_equal
+from stl import mesh
+from mpi4py import MPI
 from geograd import geograd_parallel as g
 from geograd import geograd_parallel_complex as gcs
-from stl import mesh
-import os
+from utils import custom_assert
 
 h = 1e-15
-from openmdao.utils.assert_utils import assert_near_equal
-from numpy.testing import assert_almost_equal
-import warnings
-from mpi4py import MPI
-
-
-def custom_assert(self, truth, approx, base_tol=1e-7):
-    if np.abs(truth) > 0.1:
-        assert_near_equal(truth, approx, tolerance=base_tol)
-    elif np.abs(truth) > 1e-4:
-        assert_near_equal(truth, approx, tolerance=base_tol * 10)
-    elif np.abs(truth) > 5e-9:
-        assert_near_equal(truth, approx, tolerance=base_tol * 100)
-    else:
-        assert_almost_equal(truth, approx, decimal=7)
-
 
 def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, objp2, smp0, smp1, smp2, n, objtol=1000):
     result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, objtol, MPI.COMM_WORLD.py2f())
@@ -41,7 +28,7 @@ def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, obj
     cseps = 1e-15
     max_abs_der = 0.0
     comm = MPI.COMM_WORLD
-    for i in range(n):
+    for _ in range(n):
         # test translating derivatives for cube1
         offsetdir1 = np.random.uniform(-1, 1, size=(3, 1))
         offsetdir1 = offsetdir1 / np.linalg.norm(offsetdir1)
@@ -498,7 +485,7 @@ class MinDistSTLTestCase1_SplitComm(unittest.TestCase):
 
     def test_values_on_split_comm(self):
         world_rank = MPI.COMM_WORLD.rank
-        world_size = MPI.COMM_WORLD.size
+
         if world_rank < 2:
             color = 55
             key = -world_rank
@@ -525,7 +512,7 @@ class MinDistSTLTestCase1_SplitComm(unittest.TestCase):
             splitcomm.py2f(),
         )
         self.assertAlmostEqual(-2.3197215104930256, result2[0], 8)
-        result3 = g.compute_derivs(
+        g.compute_derivs(
             self.objp0,
             self.objp1,
             self.objp2,
@@ -676,7 +663,6 @@ class BisectSphereTestCase(unittest.TestCase):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -736,7 +722,6 @@ class BisectCubeTestCase(unittest.TestCase):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/bigcube.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -761,8 +746,6 @@ class OffsetCubesTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/bigcube.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/littlecube.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -788,8 +771,6 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -808,7 +789,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         objp2 = object_mesh[:, 2, :].transpose() + offsetvec
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10, 1000, MPI.COMM_WORLD.py2f())
 
-        exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
+        exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)  # noqa F841
         custom_assert(
             self,
             result[1],
@@ -822,8 +803,6 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -831,7 +810,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         smp2 = surface_mesh[:, 2, :].transpose()
         comm = MPI.COMM_WORLD
 
-        for i in range(10):
+        for _ in range(10):
 
             object_mesh = object_mesh_base.copy()
             # generate a random unit vector direction
