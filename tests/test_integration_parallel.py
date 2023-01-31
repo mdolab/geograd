@@ -516,7 +516,7 @@ class MinDistSTLTestCase1_SplitComm(unittest.TestCase):
             splitcomm.py2f(),
         )
         self.assertAlmostEqual(-2.3197215104930256, result2[0], 8)
-        g.compute_derivs(
+        result3 = g.compute_derivs(  # noqa F841
             self.objp0,
             self.objp1,
             self.objp2,
