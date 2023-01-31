@@ -1,11 +1,14 @@
+# Standard Python modules
 import os
-import numpy as np
 import unittest
-from numpy.testing import assert_almost_equal
-from stl import mesh
-from mpi4py import MPI
+
+# External modules
 from geograd import geograd_parallel as g
 from geograd import geograd_parallel_complex as gcs
+from mpi4py import MPI
+import numpy as np
+from numpy.testing import assert_almost_equal
+from stl import mesh
 from utils import custom_assert
 
 h = 1e-15

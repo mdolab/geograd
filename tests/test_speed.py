@@ -1,10 +1,13 @@
-import numpy as np
-import unittest
-from geograd import geograd_parallel as g
-from stl import mesh
+# Standard Python modules
 import os
-from mpi4py import MPI
 import time
+import unittest
+
+# External modules
+from geograd import geograd_parallel as g
+from mpi4py import MPI
+import numpy as np
+from stl import mesh
 
 h = 1e-15
 

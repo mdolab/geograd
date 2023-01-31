@@ -1,9 +1,12 @@
+# Standard Python modules
 import os
-import numpy as np
 import unittest
-from numpy.testing import assert_almost_equal
+
+# External modules
 from geograd import geograd_serial as g
 from geograd import geograd_serial_complex as gcs
+import numpy as np
+from numpy.testing import assert_almost_equal
 from stl import mesh
 from utils import custom_assert
 
