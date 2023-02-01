@@ -1,15 +1,16 @@
 import numpy as np
 import unittest
-from geograd import geograd_parallel as g
-from geograd import geograd_parallel_complex as gcs
-from stl import mesh
-import os
-
-h = 1e-15
 from openmdao.utils.assert_utils import assert_near_equal
 from numpy.testing import assert_almost_equal
+from stl import mesh
+import os
 import warnings
 from mpi4py import MPI
+
+from geograd import geograd_parallel as g
+from geograd import geograd_parallel_complex as gcs
+
+h = 1e-15
 
 
 def custom_assert(self, truth, approx, base_tol=1e-7):
