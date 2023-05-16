@@ -1,8 +1,11 @@
-import numpy as np
+# Standard Python modules
 import unittest
+
+# External modules
 from geograd import triangles as t
 from geograd import triangles_b as tb
 from geograd import triangles_complex as tcs
+import numpy as np
 
 h = 1e-15
 

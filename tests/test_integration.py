@@ -1,25 +1,16 @@
-import numpy as np
+# Standard Python modules
+import os
 import unittest
+
+# External modules
 from geograd import geograd_serial as g
 from geograd import geograd_serial_complex as gcs
+import numpy as np
+from numpy.testing import assert_almost_equal
 from stl import mesh
-import os
+from utils import custom_assert
 
 h = 1e-15
-from openmdao.utils.assert_utils import assert_near_equal
-from numpy.testing import assert_almost_equal
-import warnings
-
-
-def custom_assert(self, truth, approx, base_tol=1e-7):
-    if np.abs(truth) > 0.1:
-        assert_near_equal(truth, approx, tolerance=base_tol)
-    elif np.abs(truth) > 1e-4:
-        assert_near_equal(truth, approx, tolerance=base_tol * 10)
-    elif np.abs(truth) > 5e-9:
-        assert_near_equal(truth, approx, tolerance=base_tol * 100)
-    else:
-        assert_almost_equal(truth, approx, decimal=7)
 
 
 def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, objp2, smp0, smp1, smp2, n):
@@ -39,7 +30,7 @@ def helper_test_derivatives_translate_objects_random(testcase, objp0, objp1, obj
     partial_sum_2 = np.sum(A2_grad, axis=1) + np.sum(B2_grad, axis=1) + np.sum(C2_grad, axis=1)
     cseps = 1e-15
     max_abs_der = 0.0
-    for i in range(n):
+    for _ in range(n):
         # test translating derivatives for cube1
         offsetdir1 = np.random.uniform(-1, 1, size=(3, 1))
         offsetdir1 = offsetdir1 / np.linalg.norm(offsetdir1)
@@ -503,7 +494,6 @@ class BisectSphereTestCase(unittest.TestCase):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -559,7 +549,6 @@ class BisectCubeTestCase(unittest.TestCase):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/bigcube.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -570,7 +559,7 @@ class BisectCubeTestCase(unittest.TestCase):
             np.array([0.0, 0.0, 60.0]), np.array([0.0, 80.0, 0.0]), np.array([0.01, -40.0, -40])
         )
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
-        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
+        result2 = g.compute_derivs(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)  # noqa F841
         custom_assert(self, result[1], 16.0, base_tol=1e-7)
         helper_test_derivatives_translate_object_given(
             self, objp0, objp1, objp2, smp0, smp1, smp2, np.array([[1.0, 0.0, 0.0]]), 0.0
@@ -583,8 +572,6 @@ class OffsetCubesTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/bigcube.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/littlecube.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -608,8 +595,6 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
@@ -628,7 +613,7 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         objp2 = object_mesh[:, 2, :].transpose() + offsetvec
         result = g.compute(objp0, objp1, objp2, smp0, smp1, smp2, 0.001, 10)
 
-        exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)
+        exact_int = 2 * np.pi * sphere_rad * np.sqrt(1 - (offsetmagnitude / 2 / sphere_rad) ** 2)  # noqa F841
         custom_assert(
             self,
             result[1],
@@ -642,15 +627,13 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         test_data_path = self.base_path + r"/inputFiles"
         surface_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
         object_mesh_base = mesh.Mesh.from_file(test_data_path + "/25mmsphere_reduced.stl").vectors
-        smSize = surface_mesh_base[:, 0, :].shape[0]
-        omSize = object_mesh_base[:, 0, :].shape[0]
 
         surface_mesh = surface_mesh_base.copy()
         smp0 = surface_mesh[:, 0, :].transpose()
         smp1 = surface_mesh[:, 1, :].transpose()
         smp2 = surface_mesh[:, 2, :].transpose()
 
-        for i in range(5):
+        for _ in range(5):
 
             object_mesh = object_mesh_base.copy()
             # generate a random unit vector direction
