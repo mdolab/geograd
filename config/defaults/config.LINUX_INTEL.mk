@@ -2,9 +2,6 @@
 # Config file for Intel ifort
 # ----------------------------------------------------------------------
 
-# ------- Define a possible parallel make ------------------------------
-PMAKE = make -j 4
-
 # ------- Define the MPI Compilers--------------------------------------
 ifdef I_MPI_ROOT # Using Intel MPI
   FCOMPILER = mpiifort
