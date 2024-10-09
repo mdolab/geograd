@@ -702,7 +702,6 @@ class BisectPlaneTestCase(unittest.TestCase):
     N_PROCS = 4
 
     def test_bisect_planes(self):
-
         objp0, objp1, objp2 = generate_plane(
             np.array([0.0, 0.0, 80.0]), np.array([0.0, 80.0, 0.0]), np.array([0.0, -40.0, -40])
         )
@@ -815,7 +814,6 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         comm = MPI.COMM_WORLD
 
         for _ in range(10):
-
             object_mesh = object_mesh_base.copy()
             # generate a random unit vector direction
             offsetdir = np.random.uniform(-1, 1, 3)
