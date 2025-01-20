@@ -527,7 +527,6 @@ class BisectSphereTestCase(unittest.TestCase):
 
 class BisectPlaneTestCase(unittest.TestCase):
     def test_bisect_planes(self):
-
         objp0, objp1, objp2 = generate_plane(
             np.array([0.0, 0.0, 80.0]), np.array([0.0, 80.0, 0.0]), np.array([0.0, -40.0, -40])
         )
@@ -634,7 +633,6 @@ class OffsetSphereIntersectedTestCase(unittest.TestCase):
         smp2 = surface_mesh[:, 2, :].transpose()
 
         for _ in range(5):
-
             object_mesh = object_mesh_base.copy()
             # generate a random unit vector direction
             offsetdir = np.random.uniform(-1, 1, 3)
