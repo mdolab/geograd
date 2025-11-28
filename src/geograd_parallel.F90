@@ -157,8 +157,8 @@ contains
 
     subroutine minval_and_loc(A, length_A, min_value, min_index)
         implicit none
-        real(kind=8), dimension(length_A), intent(in) :: A
         integer, intent(in) :: length_A
+        real(kind=8), dimension(length_A), intent(in) :: A
         real(kind=8), intent(out) :: min_value
         integer, intent(out) :: min_index
         integer :: count
@@ -174,10 +174,10 @@ contains
     end subroutine minval_and_loc
 
     subroutine check_bb_tol(obj_mins, obj_maxs, A2, B2, C2, n2, obj_tol, id)
+        integer, intent(in) :: id, n2
         real(kind=8), dimension(3, n2), intent(in) :: A2, B2, C2
         real(kind=8), dimension(3), intent(out) :: obj_mins, obj_maxs
         real(kind=8), intent(in) :: obj_tol
-        integer, intent(in) :: id, n2
         real(kind=8), dimension(3) :: obj_mins_A, obj_mins_B, obj_mins_C, &
                                       obj_maxs_A, obj_maxs_B, obj_maxs_C
         real(kind=8) :: obj_dx, obj_dy, obj_dz, obj_max_d

@@ -20,8 +20,8 @@ contains
 
     subroutine minval_and_loc(A, length_A, min_value, min_index)
         implicit none
-        real(kind=8), dimension(length_A), intent(in) :: A
         integer, intent(in) :: length_A
+        real(kind=8), dimension(length_A), intent(in) :: A
         real(kind=8), intent(out) :: min_value
         integer, intent(out) :: min_index
         integer :: count

@@ -1,0 +1,9 @@
+fortranFiles = adjoint/triangles_d.f90\
+		adjoint/triangles_b.f90\
+		triangles.F90\
+		geograd.F90\
+		geograd_parallel.F90\
+
+f77Files = adjoint/adBuffer.f
+
+cFiles = adjoint/adStack.c
