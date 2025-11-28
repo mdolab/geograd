@@ -15,10 +15,13 @@ default:
 	fi;
 
 clean:
-	rm -fr src/build/*.mod
-	rm -fr src/build/*.o
-	rm -fr src/build/*.a
-	rm -fr src/build/*.so
+	rm -fr src*/build/*.mod
+	rm -fr src*/build/*.o
+	rm -fr src*/build/*.a
+	rm -fr src*/build/*.so
+	rm -fr src*/build/*.f90
+	rm -fr src*/build/*.c
+	find src_cs -maxdepth 1 -type f ! -name "complexify.F90" -delete
 	rm -f *~ config.mk;
 
 test:

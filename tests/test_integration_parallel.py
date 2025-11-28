@@ -497,7 +497,7 @@ class MinDistSTLTestCase1_SplitComm(unittest.TestCase):
             color = 77
             key = +world_rank
         splitcomm = MPI.COMM_WORLD.Split(color, key)
-        self.assertEquals(splitcomm.size, 2)
+        self.assertEqual(splitcomm.size, 2)
         result = g.compute(
             self.objp0, self.objp1, self.objp2, self.smp0, self.smp1, self.smp2, 1.0, 10, self.maxdim, splitcomm.py2f()
         )

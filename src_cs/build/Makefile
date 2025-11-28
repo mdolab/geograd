@@ -2,10 +2,10 @@
 include ../../config/config.mk
 
 # Group Fortran compiler flags
-FF77_ALL_FLAGS = $(FF77_FLAGS)
-FF90_ALL_FLAGS = $(FF90_FLAGS) -DINSTRUMENTATION
+FF90_ALL_FLAGS = $(FF90_FLAGS) -DUSE_COMPLEX
 CC_ALL_FLAGS = $(C_FLAGS)
 LINKER_ALL_FLAGS = $(FF90_FLAGS) $(LINKER_FLAGS)
+
 
 # Include full list of files
 include fileList
@@ -14,7 +14,13 @@ include fileList
 include directoryList
 
 # Include the list of rules
-include rules
+include ../../src/build/rules
+
+# Define the list of files to complexify
+filesToComplexify := $(fortranFiles)
+
+# Prepend complexify.F90 to the fortranFiles list to ensure it is built first
+fortranFiles := complexify.F90 $(fortranFiles)
 
 # Set the make VPATH variable to the "dirs" variable from
 # directorylist. We must first append the '../'
@@ -23,11 +29,9 @@ VPATH:=$(dirs)
 
 # Add ../ prefix to all source files, remove directories
 fortranFiles:=$(addprefix ../,$(fortranFiles))
-f77Files:=$(addprefix ../,$(f77Files))
 cFiles:=$(addprefix ../,$(cFiles))
 
 fortranFilesNoDir=$(notdir $(fortranFiles))
-f77FilesNoDir=$(notdir $(f77Files))
 cFilesNoDir=$(notdir $(cFiles))
 
 # Generate separate list of .F90 and .f90 files using the filter command
@@ -35,17 +39,16 @@ f90Files=$(filter %.f90,$(fortranFilesNoDir))
 F90Files=$(filter %.F90,$(fortranFilesNoDir))
 
 # Finally convert all source files to .o
-OFILES=$(f90Files:%.f90=%.o) $(F90Files:%.F90=%.o) $(f77FilesNoDir:%.f=%.o) $(cFilesNoDir:%.c=%.o)
+OFILES=$(f90Files:%.f90=%.o) $(F90Files:%.F90=%.o) $(cFilesNoDir:%.c=%.o)
 
-
-.PHONY: sources lib
-
+.PHONY: sources lib complexify
 
 PYTHON_OBJECTS = fortranobject.o \
-		 libgeogradmodule.o\
-		 libgeograd-f2pywrappers2.o\
+		 libgeograd_complexmodule.o\
+		 libgeograd_complex-f2pywrappers2.o\
 
-default: lib ../f2py/geograd.pyf
+
+default: complexify lib ../f2py/geograd_complex.pyf
 
 # Generate Python inlude directory
 	$(eval PYTHON_INCLUDES = $(shell $(PYTHON-CONFIG) --includes))
@@ -60,40 +63,57 @@ default: lib ../f2py/geograd.pyf
 	 @echo "#------------------------------------------------------#"
 
 # Generate f2py root directory
-	$(eval F2PY_ROOT = $(shell $(PYTHON) ../f2py/get_f2py.py))
+	$(eval F2PY_ROOT = $(shell $(PYTHON) ../../src/f2py/get_f2py.py))
 	 @echo "#------------------------------------------------------#"
 	 @echo f2py root directory: $(F2PY_ROOT)
 	 @echo "#------------------------------------------------------#"
 
 # Run f2py
-	$(F2PY) ../f2py/geograd.pyf
+	$(F2PY) ../f2py/geograd_complex.pyf
 
 # Compile f2py-generated C wrapper file
 	$(CC) $(CC_ALL_FLAGS) $(PYTHON_INCLUDES) -I$(NUMPY_INCLUDES) \
-	-I$(F2PY_ROOT)/src -c libgeogradmodule.c
+	-I$(F2PY_ROOT)/src -c libgeograd_complexmodule.c
 
 # Compile the Fortran wrapper in the f2py source
 	$(CC) $(CC_ALL_FLAGS) $(PYTHON_INCLUDES) -I$(NUMPY_INCLUDES) -c \
 	$(F2PY_ROOT)/src/fortranobject.c -o fortranobject.o
 
 # Compile f2py-generated Fortran wrapper file
-	$(FF90) $(FF90_ALL_FLAGS) -I./ -c libgeograd-f2pywrappers2.f90
+	$(FF90) $(FF90_ALL_FLAGS) -I./ -c libgeograd_complex-f2pywrappers2.f90
 
 # Create shared library
-	$(FF90) -shared $(PYTHON_OBJECTS) libgeograd.a $(LINKER_ALL_FLAGS) -o libgeograd.so
+	$(FF90) -shared $(PYTHON_OBJECTS) libgeograd_complex.a $(LINKER_ALL_FLAGS) -o libgeograd_complex.so
 
 # Test if the shared library can be imported in Python
-	$(PYTHON) ../f2py/importTest.py libgeograd.so
+	$(PYTHON) ../../src/f2py/importTest.py libgeograd_complex.so
 
 # Move the shared library to the main Python directory
-	mv libgeograd.so ../../geograd
+	mv libgeograd_complex.so ../../geograd
 
 # # Clean up temporary files
 # 	-rm *.o
 # 	-rm *.c
-# 	-rm *.f
+# 	-rm *.f90
 
 sources: $(OFILES)
 
 lib: sources
-	$(AR) $(AR_FLAGS) libgeograd.a $(OFILES)
+	$(AR) $(AR_FLAGS) libgeograd_complex.a $(OFILES)
+
+complexify:
+	@for file in $(filesToComplexify); do \
+		echo "Processing $$file"; \
+		realFile=$(addprefix ../../src/,$$file); \
+		cmplxFile=$(addprefix ../,$$file); \
+		echo Checking $$realFile $$cmplxFile; \
+		if [ $$realFile -nt $$cmplxFile -o ! -e $$cmplxFile ];  then \
+			echo Complexifying $$realFile $$cmplxFile; \
+			python ../complexify.py $$realFile; \
+			mv newFile $$cmplxFile; \
+		fi;\
+	done
+
+
+# 	python src_cs/complexify.py src/geograd_parallel.F90
+# 	mv newFile src_cs/geograd_parallel_complex.F90

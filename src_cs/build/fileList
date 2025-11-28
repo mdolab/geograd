@@ -1,0 +1,4 @@
+fortranFiles = triangles.F90\
+		geograd.F90\
+		geograd_parallel.F90\
+
