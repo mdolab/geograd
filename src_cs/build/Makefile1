@@ -1,0 +1,24 @@
+# Include user supplied configuration file
+include ../../config/config.mk
+
+# Include full list of files
+include fileList
+
+# Include full list of directories
+include directoryList
+
+# Define the list of files to complexify
+filesToComplexify := $(fortranFiles)
+
+complexify:
+	@for file in $(filesToComplexify); do \
+		echo "Processing $$file"; \
+		realFile=$(addprefix ../../src/,$$file); \
+		cmplxFile=$(addprefix ../,$$file); \
+		echo Checking $$realFile $$cmplxFile; \
+		if [ $$realFile -nt $$cmplxFile -o ! -e $$cmplxFile ];  then \
+			echo Complexifying $$realFile $$cmplxFile; \
+			python ../complexify.py $$realFile; \
+			mv newFile $$cmplxFile; \
+		fi;\
+	done

@@ -16,9 +16,6 @@ include directoryList
 # Include the list of rules
 include ../../src/build/rules
 
-# Define the list of files to complexify
-filesToComplexify := $(fortranFiles)
-
 # Prepend complexify.F90 to the fortranFiles list to ensure it is built first
 fortranFiles := complexify.F90 $(fortranFiles)
 
@@ -41,14 +38,14 @@ F90Files=$(filter %.F90,$(fortranFilesNoDir))
 # Finally convert all source files to .o
 OFILES=$(f90Files:%.f90=%.o) $(F90Files:%.F90=%.o) $(cFilesNoDir:%.c=%.o)
 
-.PHONY: sources lib complexify
+.PHONY: sources lib
 
 PYTHON_OBJECTS = fortranobject.o \
 		 libgeograd_complexmodule.o\
 		 libgeograd_complex-f2pywrappers2.o\
 
 
-default: complexify lib ../f2py/geograd_complex.pyf
+default: lib ../f2py/geograd_complex.pyf
 
 # Generate Python inlude directory
 	$(eval PYTHON_INCLUDES = $(shell $(PYTHON-CONFIG) --includes))
@@ -91,29 +88,7 @@ default: complexify lib ../f2py/geograd_complex.pyf
 # Move the shared library to the main Python directory
 	mv libgeograd_complex.so ../../geograd
 
-# # Clean up temporary files
-# 	-rm *.o
-# 	-rm *.c
-# 	-rm *.f90
-
 sources: $(OFILES)
 
 lib: sources
 	$(AR) $(AR_FLAGS) libgeograd_complex.a $(OFILES)
-
-complexify:
-	@for file in $(filesToComplexify); do \
-		echo "Processing $$file"; \
-		realFile=$(addprefix ../../src/,$$file); \
-		cmplxFile=$(addprefix ../,$$file); \
-		echo Checking $$realFile $$cmplxFile; \
-		if [ $$realFile -nt $$cmplxFile -o ! -e $$cmplxFile ];  then \
-			echo Complexifying $$realFile $$cmplxFile; \
-			python ../complexify.py $$realFile; \
-			mv newFile $$cmplxFile; \
-		fi;\
-	done
-
-
-# 	python src_cs/complexify.py src/geograd_parallel.F90
-# 	mv newFile src_cs/geograd_parallel_complex.F90

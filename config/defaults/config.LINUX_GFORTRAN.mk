@@ -25,5 +25,5 @@ LINKER_FLAGS = -fPIC
 
 # Define potentially different python, python-config and f2py executables:
 PYTHON = python
-PYTHON-CONFIG = python3-config # use python-config for python 2
+PYTHON-CONFIG = python3-config
 F2PY = f2py

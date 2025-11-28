@@ -88,11 +88,6 @@ default: lib ../f2py/geograd.pyf
 # Move the shared library to the main Python directory
 	mv libgeograd.so ../../geograd
 
-# # Clean up temporary files
-# 	-rm *.o
-# 	-rm *.c
-# 	-rm *.f
-
 sources: $(OFILES)
 
 lib: sources

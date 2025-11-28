@@ -21,7 +21,7 @@ clean:
 	rm -fr src*/build/*.so
 	rm -fr src*/build/*.f90
 	rm -fr src*/build/*.c
-	find src_cs -maxdepth 1 -type f ! -name "complexify.F90" -delete
+	find src_cs -maxdepth 1 -type f ! -name "complexify.F90" ! -name "complexify.py" -delete
 	rm -f *~ config.mk;
 
 test:
@@ -30,4 +30,4 @@ test:
 geograd_build:
 	ln -sf config/config.mk config.mk;
 	(cd src/build/ && make)
-	(cd src_cs/build/ && make)
+	(cd src_cs/build/ && make -f Makefile1 complexify && make)
