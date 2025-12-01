@@ -1149,7 +1149,7 @@ c           LOGICAL adc32inlbuf
 c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
 c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
       integer*4 smallstacksize
-c     
+c
       smallstacksize = 0
       smallstacksize = smallstacksize + (ads1ibuf-1)*1
 c           smallstacksize = smallstacksize + (adl4ibuf-1)*4
@@ -1237,7 +1237,7 @@ c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
 c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
       integer*4 bsize,lookbsize
       integer*4 cblocks, csize, lookcblocks, lookcsize
-c     
+c
       call getbigcsizes(cblocks,csize,lookcblocks,lookcsize)
       write (6,'(a,i8,a,i5,a,i8,a,i5,a)')
      +     'MAIN C stack size :',cblocks,'B +',csize,
@@ -1404,7 +1404,7 @@ c              adi16buf(adi16ibuf) = x
 c              adi16ibuf = adi16ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKINTEGER16(x)
 c           INTEGER*16 x, adi16buf(512), adi16lbuf(512)
 c           INTEGER adi16ibuf,adi16ilbuf
@@ -1435,7 +1435,7 @@ c                 x = adi16buf(adi16ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPINTEGER16(x)
 c           INTEGER*16 x, adi16buf(512), adi16lbuf(512)
 c           INTEGER adi16ibuf,adi16ilbuf
@@ -1471,7 +1471,7 @@ c           DATA adr16ibuf/1/
 c           DATA adr16ilbuf/-1/
 c           DATA adr16inlbuf/.FALSE./
 c           END
-c     
+c
 c           SUBROUTINE PUSHREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1497,7 +1497,7 @@ c              adr16buf(adr16ibuf) = x
 c              adr16ibuf = adr16ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1528,7 +1528,7 @@ c                 x = adr16buf(adr16ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1590,7 +1590,7 @@ c              adr32buf(adr32ibuf) = x
 c              adr32ibuf = adr32ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKREAL32(x)
 c           REAL*32 x, adr32buf(512), adr32lbuf(512)
 c           INTEGER adr32ibuf,adr32ilbuf
@@ -1621,7 +1621,7 @@ c                 x = adr32buf(adr32ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPREAL32(x)
 c           REAL*32 x, adr32buf(512), adr32lbuf(512)
 c           INTEGER adr32ibuf,adr32ilbuf
@@ -1683,7 +1683,7 @@ c              adc4buf(adc4ibuf) = x
 c              adc4ibuf = adc4ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKCOMPLEX4(x)
 c           COMPLEX*4 x, adc4buf(512), adc4lbuf(512)
 c           INTEGER adc4ibuf,adc4ilbuf
@@ -1714,7 +1714,7 @@ c                 x = adc4buf(adc4ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPCOMPLEX4(x)
 c           COMPLEX*4 x, adc4buf(512), adc4lbuf(512)
 c           INTEGER adc4ibuf,adc4ilbuf
@@ -1776,7 +1776,7 @@ c              adc32buf(adc32ibuf) = x
 c              adc32ibuf = adc32ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKCOMPLEX32(x)
 c           COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
 c           INTEGER adc32ibuf,adc32ilbuf
@@ -1807,7 +1807,7 @@ c                 x = adc32buf(adc32ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPCOMPLEX32(x)
 c           COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
 c           INTEGER adc32ibuf,adc32ilbuf
@@ -1884,7 +1884,7 @@ c              adz9buf(adz9ibuf) = x
 c              adz9ibuf = adz9ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKTTTT9(x)
 c           TTTT*9 x, adz9buf(512), adz9lbuf(512)
 c           INTEGER adz9ibuf,adz9ilbuf
@@ -1915,7 +1915,7 @@ c                 x = adz9buf(adz9ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPTTTT9(x)
 c           TTTT*9 x, adz9buf(512), adz9lbuf(512)
 c           INTEGER adz9ibuf,adz9ilbuf
