@@ -10,17 +10,31 @@ ifdef I_MPI_ROOT # Using Intel MPI
   ifdef ICC_EXISTS
     # icc only exists on older Intel versions
     # Assume that we want to use the old compilers
-    FCOMPILER = mpiifort
+    FF90 = mpiifort
+    CC = mpiicc
   else
     # Use the new compilers
-    FCOMPILER = mpiifx
+    FF90 = mpiifx
+    CC = mpiicx
   endif
 else # Using HPE MPI
-  FCOMPILER = ifort -lmpi
+  FF90 = ifort -lmpi
+  CC   = icc -lmpi
 endif
 
-FCOMPILER_ALL_FLAGS=$(FCOMPILER) -O3
-F2PY_INCLUDES=-I$(MPI_INSTALL_DIR)/include
-F2PY_ALL_FLAGS=--fcompiler=intelem --f90exec=$(FCOMPILER) --f77exec=$(FCOMPILER) $(F2PY_INCLUDES) --opt='-O3'
-F2PY=python3 -m numpy.f2py
-                                  
+# ------- Define Compiler Flags ----------------------------------------
+FF77_FLAGS = -fPIC -r8 -O2
+FF90_FLAGS = ${FF77_FLAGS} #-stand f08
+C_FLAGS    = -fPIC -O2
+
+# ------- Define Archiver and Flags -----------------------------------
+AR       = ar
+AR_FLAGS = -rvs
+
+# ------- Define Linker Flags ------------------------------------------
+LINKER_FLAGS = -fPIC -nofor-main
+
+# Define potentially different python, python-config and f2py executables:
+PYTHON = python
+PYTHON-CONFIG = python3-config
+F2PY = f2py

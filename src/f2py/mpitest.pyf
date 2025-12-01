@@ -1,7 +1,7 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module mpitest ! in 
+python module mpitest ! in
     interface  ! in :mpitest
         module mpitest ! in :mpitest:src/mpitest.F90
             subroutine scat_gath_test(a,n,sum_out,a_out) ! in :mpitest:src/mpitest.F90:mpitest
@@ -12,7 +12,7 @@ python module mpitest ! in
                 real(kind=8) dimension(3,n),intent(out),depend(n) :: a_out
             end subroutine scat_gath_test
         end module mpitest
-    end interface 
+    end interface
 end python module mpitest
 
 ! This file was auto-generated with f2py (version:2).

@@ -15,7 +15,7 @@ setup(
       --------
       Please cite geograd in any publication for which you find it useful.
       For more background, theory, and figures, see the [geograd journal article](https://arc.aiaa.org/doi/10.2514/1.J058366).
-      B. J. Brelje, Anibal, J. L, Yildirim, A., Mader, C. A., and Martins, J. R. R. A., “Flexible Formulation of Spatial Integration Constraints in Aerodynamic Shape Optimization”, in AIAA Journal, 2020. 
+      B. J. Brelje, Anibal, J. L, Yildirim, A., Mader, C. A., and Martins, J. R. R. A., “Flexible Formulation of Spatial Integration Constraints in Aerodynamic Shape Optimization”, in AIAA Journal, 2020.
       @article{Brelje2020a,
       author = {Benjamin J. Brelje and Joshua Anibal and Anil Yildirim and Charles A. Mader and Joaquim R. R. A. Martins},
       doi = {10.2514/1.J058366},
