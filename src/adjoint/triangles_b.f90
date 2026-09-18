@@ -624,19 +624,19 @@ CONTAINS
 !  Differentiation of clamp in reverse (adjoint) mode:
 !   gradient     of useful results: n
 !   with respect to varying inputs: n
-  SUBROUTINE CLAMP_B(n, nb, min, max)
+  SUBROUTINE CLAMP_B(n, nb, lowBound, highBound)
     IMPLICIT NONE
-    REAL(kind=8), INTENT(IN) :: min, max
+    REAL(kind=8), INTENT(IN) :: lowBound, highBound
     REAL(kind=8), INTENT(INOUT) :: n
     REAL(kind=8) :: nb
     INTEGER :: branch
-    IF (n .LT. min) THEN
-      n = min
+    IF (n .LT. lowBound) THEN
+      n = lowBound
       CALL PUSHCONTROL1B(0)
     ELSE
       CALL PUSHCONTROL1B(1)
     END IF
-    IF (n .GT. max) nb = 0.0_8
+    IF (n .GT. highBound) nb = 0.0_8
     CALL POPCONTROL1B(branch)
     IF (branch .EQ. 0) nb = 0.0_8
   END SUBROUTINE CLAMP_B
@@ -705,12 +705,12 @@ CONTAINS
       RETURN
     END IF
   END SUBROUTINE LINE_LINE
-  SUBROUTINE CLAMP(n, min, max)
+  SUBROUTINE CLAMP(n, lowBound, highBound)
     IMPLICIT NONE
-    REAL(kind=8), INTENT(IN) :: min, max
+    REAL(kind=8), INTENT(IN) :: lowBound, highBound
     REAL(kind=8), INTENT(INOUT) :: n
-    IF (n .LT. min) n = min
-    IF (n .GT. max) n = max
+    IF (n .LT. lowBound) n = lowBound
+    IF (n .GT. highBound) n = highBound
   END SUBROUTINE CLAMP
   SUBROUTINE MAXLOC3(a, maxind)
     IMPLICIT NONE
