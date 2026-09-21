@@ -405,17 +405,17 @@ CONTAINS
 !  Differentiation of clamp in forward (tangent) mode:
 !   variations   of useful results: n
 !   with respect to varying inputs: n
-  SUBROUTINE CLAMP_D(n, nd, min, max)
+  SUBROUTINE CLAMP_D(n, nd, lowBound, highBound)
     IMPLICIT NONE
-    REAL(kind=8), INTENT(IN) :: min, max
+    REAL(kind=8), INTENT(IN) :: lowBound, highBound
     REAL(kind=8), INTENT(INOUT) :: n
     REAL(kind=8), INTENT(INOUT) :: nd
-    IF (n .LT. min) THEN
-      n = min
+    IF (n .LT. lowBound) THEN
+      n = lowBound
       nd = 0.0_8
     END IF
-    IF (n .GT. max) THEN
-      n = max
+    IF (n .GT. highBound) THEN
+      n = highBound
       nd = 0.0_8
     END IF
   END SUBROUTINE CLAMP_D
@@ -484,12 +484,12 @@ CONTAINS
       RETURN
     END IF
   END SUBROUTINE LINE_LINE
-  SUBROUTINE CLAMP(n, min, max)
+  SUBROUTINE CLAMP(n, lowBound, highBound)
     IMPLICIT NONE
-    REAL(kind=8), INTENT(IN) :: min, max
+    REAL(kind=8), INTENT(IN) :: lowBound, highBound
     REAL(kind=8), INTENT(INOUT) :: n
-    IF (n .LT. min) n = min
-    IF (n .GT. max) n = max
+    IF (n .LT. lowBound) n = lowBound
+    IF (n .GT. highBound) n = highBound
   END SUBROUTINE CLAMP
   SUBROUTINE MAXLOC3(a, maxind)
     IMPLICIT NONE

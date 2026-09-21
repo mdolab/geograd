@@ -118,16 +118,16 @@ contains
 
     end subroutine point_tri
 
-    subroutine clamp(n, min, max)
+    subroutine clamp(n, lowBound, highBound)
         implicit none
-        real(kind=8), intent(in) :: min, max
+        real(kind=8), intent(in) :: lowBound, highBound
         real(kind=8), intent(inout) :: n
 
-        if (n < min) then
-            n = min
+        if (n < lowBound) then
+            n = lowBound
         end if
-        if (n > max) then
-            n = max
+        if (n > highBound) then
+            n = highBound
         end if
     end subroutine clamp
 
